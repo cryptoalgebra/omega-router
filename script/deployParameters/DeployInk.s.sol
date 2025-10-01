@@ -8,7 +8,7 @@ contract DeployInk is DeployUniversalRouter {
     function setUp() public override {
         params = RouterParameters({
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
-            weth9: 0x4200000000000000000000000000000000000006,
+            weth: 0x4200000000000000000000000000000000000006,
             v2Factory: 0xfe57A6BA1951F69aE2Ed4abe23e0f095DF500C04,
             v3Factory: 0x640887A9ba3A9C53Ed27D0F7e8246A4F933f3424,
             pairInitCodeHash: 0x96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f,

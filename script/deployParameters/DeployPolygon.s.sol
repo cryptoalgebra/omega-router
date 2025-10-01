@@ -8,7 +8,7 @@ contract DeployPolygon is DeployUniversalRouter {
     function setUp() public override {
         params = RouterParameters({
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
-            weth9: 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270,
+            weth: 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270,
             v2Factory: 0x9e5A52f57b3038F1B8EeE45F28b3C1967e22799C,
             v3Factory: 0x1F98431c8aD98523631AE4a59f267346ea31F984,
             pairInitCodeHash: 0x96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f,

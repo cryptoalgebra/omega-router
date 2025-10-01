@@ -1,9 +1,9 @@
-import { UniversalRouter, ERC20, IWETH9, IPermit2 } from '../../typechain'
+import { UniversalRouter, ERC20, IWETH, IPermit2 } from '../../typechain'
 import { Pair } from '@uniswap/v2-sdk'
 import { expect } from './shared/expect'
 import { abi as ROUTER_ABI } from '../../artifacts/contracts/UniversalRouter.sol/UniversalRouter.json'
 import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
-import { abi as WETH_ABI } from '../../artifacts/@uniswap/v4-periphery/src/interfaces/external/IWETH9.sol/IWETH9.json'
+import { abi as WETH_ABI } from '../../artifacts/@uniswap/v4-periphery/src/interfaces/external/IWETH.sol/IWETH.json'
 
 import deployUniversalRouter from './shared/deployUniversalRouter'
 import {
@@ -30,7 +30,7 @@ describe('UniversalRouter', () => {
   let router: UniversalRouter
   let permit2: IPermit2
   let daiContract: ERC20
-  let wethContract: IWETH9
+  let wethContract: IWETH
   let pair_DAI_WETH: Pair
 
   beforeEach(async () => {
@@ -42,7 +42,7 @@ describe('UniversalRouter', () => {
     })
 
     daiContract = new ethers.Contract(DAI.address, TOKEN_ABI, alice) as ERC20
-    wethContract = new ethers.Contract(WETH.address, WETH_ABI, alice) as IWETH9
+    wethContract = new ethers.Contract(WETH.address, WETH_ABI, alice) as IWETH
     pair_DAI_WETH = await makePair(alice, DAI, WETH)
     permit2 = PERMIT2.connect(alice) as IPermit2
     router = (await deployUniversalRouter(alice.address)).connect(alice) as UniversalRouter

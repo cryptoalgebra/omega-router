@@ -25,4 +25,16 @@ library Constants {
 
     /// @dev The minimum length of an encoding that contains 2 or more pools
     uint256 internal constant MULTIPLE_V3_POOLS_MIN_LENGTH = V3_POP_OFFSET + NEXT_V3_POOL_OFFSET;
+
+    /// @dev The offset of a custom pool deployer address
+    uint256 internal constant INTEGRAL_DEPLOYER_OFFSET = ADDR_SIZE;
+
+    /// @dev The offset of a single token address + deployer address
+    uint256 internal constant INTEGRAL_NEXT_OFFSET = ADDR_SIZE + INTEGRAL_DEPLOYER_OFFSET;
+
+    /// @dev The offset of an encoded pool key
+    uint256 internal constant INTEGRAL_POP_OFFSET = INTEGRAL_NEXT_OFFSET + ADDR_SIZE;
+
+    /// @dev The minimum length of an encoding that contains 2 or more pools
+    uint256 internal constant INTEGRAL_MULTIPLE_POOLS_MIN_LENGTH = INTEGRAL_POP_OFFSET + INTEGRAL_NEXT_OFFSET;
 }

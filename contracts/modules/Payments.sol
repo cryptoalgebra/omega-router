@@ -2,8 +2,8 @@
 pragma solidity ^0.8.24;
 
 import {Constants} from '../libraries/Constants.sol';
-import {ActionConstants} from '@uniswap/v4-periphery/src/libraries/ActionConstants.sol';
-import {BipsLibrary} from '@uniswap/v4-periphery/src/libraries/BipsLibrary.sol';
+import {ActionConstants} from '../libraries/ActionConstants.sol';
+import {BipsLibrary} from '../libraries/BipsLibrary.sol';
 import {PaymentsImmutables} from '../modules/PaymentsImmutables.sol';
 import {SafeTransferLib} from 'solmate/src/utils/SafeTransferLib.sol';
 import {ERC20} from 'solmate/src/tokens/ERC20.sol';
@@ -77,9 +77,9 @@ abstract contract Payments is PaymentsImmutables {
             revert InsufficientETH();
         }
         if (amount > 0) {
-            WETH9.deposit{value: amount}();
+            WETH.deposit{value: amount}();
             if (recipient != address(this)) {
-                WETH9.transfer(recipient, amount);
+                WETH.transfer(recipient, amount);
             }
         }
     }
@@ -87,13 +87,13 @@ abstract contract Payments is PaymentsImmutables {
     /// @notice Unwraps all of the contract's WETH into ETH
     /// @param recipient The recipient of the ETH
     /// @param amountMinimum The minimum amount of ETH desired
-    function unwrapWETH9(address recipient, uint256 amountMinimum) internal {
-        uint256 value = WETH9.balanceOf(address(this));
+    function unwrapWETH(address recipient, uint256 amountMinimum) internal {
+        uint256 value = WETH.balanceOf(address(this));
         if (value < amountMinimum) {
             revert InsufficientETH();
         }
         if (value > 0) {
-            WETH9.withdraw(value);
+            WETH.withdraw(value);
             if (recipient != address(this)) {
                 recipient.safeTransferETH(value);
             }

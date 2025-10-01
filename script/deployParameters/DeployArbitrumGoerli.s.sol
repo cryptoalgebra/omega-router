@@ -8,7 +8,7 @@ contract DeployArbitrumGoerli is DeployUniversalRouter {
     function setUp() public override {
         params = RouterParameters({
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
-            weth9: 0xe39Ab88f8A4777030A534146A9Ca3B52bd5D43A3,
+            weth: 0xe39Ab88f8A4777030A534146A9Ca3B52bd5D43A3,
             v2Factory: UNSUPPORTED_PROTOCOL,
             v3Factory: 0x4893376342d5D7b3e31d4184c08b265e5aB2A3f6,
             pairInitCodeHash: BYTES32_ZERO,

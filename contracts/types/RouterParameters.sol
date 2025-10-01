@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 struct RouterParameters {
     // Payment parameters
     address permit2;
-    address weth9;
+    address weth;
     // Uniswap swapping parameters
     address v2Factory;
     address v3Factory;

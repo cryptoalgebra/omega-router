@@ -8,7 +8,7 @@ contract DeployBaseGoerli is DeployUniversalRouter {
     function setUp() public override {
         params = RouterParameters({
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
-            weth9: 0x44D627f900da8AdaC7561bD73aA745F132450798,
+            weth: 0x44D627f900da8AdaC7561bD73aA745F132450798,
             v2Factory: UNSUPPORTED_PROTOCOL,
             v3Factory: 0x9323c1d6D800ed51Bd7C6B216cfBec678B7d0BC2,
             pairInitCodeHash: BYTES32_ZERO,

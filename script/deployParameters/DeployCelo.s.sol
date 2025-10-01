@@ -8,7 +8,7 @@ contract DeployCelo is DeployUniversalRouter {
     function setUp() public override {
         params = RouterParameters({
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
-            weth9: UNSUPPORTED_PROTOCOL,
+            weth: UNSUPPORTED_PROTOCOL,
             v2Factory: 0x79a530c8e2fA8748B7B40dd3629C0520c2cCf03f,
             v3Factory: 0xAfE208a311B21f13EF87E33A90049fC17A7acDEc,
             pairInitCodeHash: 0x96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f,

@@ -24,7 +24,7 @@ contract UniversalRouterTest is Test {
     function setUp() public {
         RouterParameters memory params = RouterParameters({
             permit2: address(0),
-            weth9: address(0),
+            weth: address(0),
             v2Factory: address(0),
             v3Factory: address(0),
             pairInitCodeHash: bytes32(0),

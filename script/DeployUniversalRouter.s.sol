@@ -35,7 +35,7 @@ abstract contract DeployUniversalRouter is Script {
 
         params = RouterParameters({
             permit2: mapUnsupported(params.permit2),
-            weth9: mapUnsupported(params.weth9),
+            weth: mapUnsupported(params.weth),
             v2Factory: mapUnsupported(params.v2Factory),
             v3Factory: mapUnsupported(params.v3Factory),
             pairInitCodeHash: params.pairInitCodeHash,
@@ -54,7 +54,7 @@ abstract contract DeployUniversalRouter is Script {
 
     function logParams() internal view {
         console2.log('permit2:', params.permit2);
-        console2.log('weth9:', params.weth9);
+        console2.log('weth:', params.weth);
         console2.log('v2Factory:', params.v2Factory);
         console2.log('v3Factory:', params.v3Factory);
         console2.log('v4PoolManager:', params.v4PoolManager);

@@ -8,7 +8,7 @@ contract DeploySoneium is DeployUniversalRouter {
     function setUp() public override {
         params = RouterParameters({
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
-            weth9: 0x4200000000000000000000000000000000000006,
+            weth: 0x4200000000000000000000000000000000000006,
             v2Factory: UNSUPPORTED_PROTOCOL,
             v3Factory: UNSUPPORTED_PROTOCOL,
             pairInitCodeHash: BYTES32_ZERO,

@@ -12,8 +12,8 @@ library Commands {
     // The commands are executed in nested if blocks to minimise gas consumption
 
     // Command Types where value<=0x07, executed in the first nested-if block
-    uint256 constant V3_SWAP_EXACT_IN = 0x00;
-    uint256 constant V3_SWAP_EXACT_OUT = 0x01;
+    uint256 constant INTEGRAL_SWAP_EXACT_IN = 0x00;
+    uint256 constant INTEGRAL_SWAP_EXACT_OUT = 0x01;
     uint256 constant PERMIT2_TRANSFER_FROM = 0x02;
     uint256 constant PERMIT2_PERMIT_BATCH = 0x03;
     uint256 constant SWEEP = 0x04;

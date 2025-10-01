@@ -2,3 +2,4 @@ solmate/=lib/solmate/
 permit2/=lib/permit2/
 forge-std/=lib/forge-std/src/
 @cryptoalgebra/integral-core/=node_modules/@cryptoalgebra/integral-core/
+@openzeppelin/=node_modules/@openzeppelin/

@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import {V3Path} from './V3Path.sol';
-import {BytesLib} from './BytesLib.sol';
-import {SafeCast} from '@uniswap/v3-core/contracts/libraries/SafeCast.sol';
-import {IUniswapV3Pool} from '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
-import {IUniswapV3SwapCallback} from '@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3SwapCallback.sol';
-import {ActionConstants} from '@uniswap/v4-periphery/src/libraries/ActionConstants.sol';
-import {CalldataDecoder} from '@uniswap/v4-periphery/src/libraries/CalldataDecoder.sol';
+import {IntegralPath} from './IntegralPath.sol';
+import {IntegralBytesLib} from './IntegralBytesLib.sol';
+import {SafeCast} from '@cryptoalgebra/integral-core/contracts/libraries/SafeCast.sol';
+import {IAlgebraPool} from '@cryptoalgebra/integral-core/contracts/interfaces/IAlgebraPool.sol';
+import {IAlgebraSwapCallback} from '@cryptoalgebra/integral-core/contracts/interfaces/callback/IAlgebraSwapCallback.sol';
+import {ActionConstants} from '../../../libraries/ActionConstants.sol';
+import {CalldataDecoder} from '../../../libraries/CalldataDecoder.sol';
 import {Permit2Payments} from '../../Permit2Payments.sol';
-import {UniswapImmutables} from '../UniswapImmutables.sol';
+import {AlgebraImmutables} from '../AlgebraImmutables.sol';
 import {MaxInputAmount} from '../../../libraries/MaxInputAmount.sol';
 import {ERC20} from 'solmate/src/tokens/ERC20.sol';
 
-/// @title Router for Uniswap v3 Trades
-abstract contract V3SwapRouter is UniswapImmutables, Permit2Payments, IUniswapV3SwapCallback {
-    using V3Path for bytes;
-    using BytesLib for bytes;
+/// @title Router for Algebra Integral Swaps
+abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlgebraSwapCallback {
+    using IntegralPath for bytes;
+    using IntegralBytesLib for bytes;
     using CalldataDecoder for bytes;
     using SafeCast for uint256;
 
-    error V3InvalidSwap();
-    error V3TooLittleReceived();
-    error V3TooMuchRequested();
-    error V3InvalidAmountOut();
-    error V3InvalidCaller();
+    error IntegralInvalidSwap();
+    error IntegralTooLittleReceived();
+    error IntegralTooMuchRequested();
+    error IntegralInvalidAmountOut();
+    error IntegralInvalidCaller();
 
     /// @dev The minimum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MIN_TICK)
     uint160 internal constant MIN_SQRT_RATIO = 4295128739;
@@ -32,15 +32,15 @@ abstract contract V3SwapRouter is UniswapImmutables, Permit2Payments, IUniswapV3
     /// @dev The maximum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MAX_TICK)
     uint160 internal constant MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342;
 
-    function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external {
-        if (amount0Delta <= 0 && amount1Delta <= 0) revert V3InvalidSwap(); // swaps entirely within 0-liquidity regions are not supported
+    function algebraSwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external {
+        if (amount0Delta <= 0 && amount1Delta <= 0) revert IntegralInvalidSwap(); // swaps entirely within 0-liquidity regions are not supported
         (, address payer) = abi.decode(data, (bytes, address));
         bytes calldata path = data.toBytes(0);
 
         // because exact output swaps are executed in reverse order, in this case tokenOut is actually tokenIn
-        (address tokenIn, uint24 fee, address tokenOut) = path.decodeFirstPool();
+        (address tokenIn, address deployer, address tokenOut) = path.decodeFirstPool();
 
-        if (computePoolAddress(tokenIn, tokenOut, fee) != msg.sender) revert V3InvalidCaller();
+        if (computePoolAddress(tokenIn,deployer, tokenOut) != msg.sender) revert IntegralInvalidCaller();
 
         (bool isExactInput, uint256 amountToPay) =
             amount0Delta > 0 ? (tokenIn < tokenOut, uint256(amount0Delta)) : (tokenOut < tokenIn, uint256(amount1Delta));
@@ -55,20 +55,20 @@ abstract contract V3SwapRouter is UniswapImmutables, Permit2Payments, IUniswapV3
                 path = path.skipToken();
                 _swap(-amountToPay.toInt256(), msg.sender, path, payer, false);
             } else {
-                if (amountToPay > MaxInputAmount.get()) revert V3TooMuchRequested();
+                if (amountToPay > MaxInputAmount.get()) revert IntegralTooMuchRequested();
                 // note that because exact output swaps are executed in reverse order, tokenOut is actually tokenIn
                 payOrPermit2Transfer(tokenOut, payer, msg.sender, amountToPay);
             }
         }
     }
 
-    /// @notice Performs a Uniswap v3 exact input swap
+    /// @notice Performs an Algebra Integral exact input swap
     /// @param recipient The recipient of the output tokens
     /// @param amountIn The amount of input tokens for the trade
     /// @param amountOutMinimum The minimum desired amount of output tokens
     /// @param path The path of the trade as a bytes string
     /// @param payer The address that will be paying the input
-    function v3SwapExactInput(
+    function integralSwapExactInput(
         address recipient,
         uint256 amountIn,
         uint256 amountOutMinimum,
@@ -106,16 +106,16 @@ abstract contract V3SwapRouter is UniswapImmutables, Permit2Payments, IUniswapV3
             }
         }
 
-        if (amountOut < amountOutMinimum) revert V3TooLittleReceived();
+        if (amountOut < amountOutMinimum) revert IntegralTooLittleReceived();
     }
 
-    /// @notice Performs a Uniswap v3 exact output swap
+    /// @notice Performs an Algebra Integral exact output swap
     /// @param recipient The recipient of the output tokens
     /// @param amountOut The amount of output tokens to receive for the trade
     /// @param amountInMaximum The maximum desired amount of input tokens
     /// @param path The path of the trade as a bytes string
     /// @param payer The address that will be paying the input
-    function v3SwapExactOutput(
+    function integralSwapExactOutput(
         address recipient,
         uint256 amountOut,
         uint256 amountInMaximum,
@@ -128,7 +128,7 @@ abstract contract V3SwapRouter is UniswapImmutables, Permit2Payments, IUniswapV3
 
         uint256 amountOutReceived = zeroForOne ? uint256(-amount1Delta) : uint256(-amount0Delta);
 
-        if (amountOutReceived != amountOut) revert V3InvalidAmountOut();
+        if (amountOutReceived != amountOut) revert IntegralInvalidAmountOut();
 
         MaxInputAmount.set(0);
     }
@@ -139,11 +139,11 @@ abstract contract V3SwapRouter is UniswapImmutables, Permit2Payments, IUniswapV3
         private
         returns (int256 amount0Delta, int256 amount1Delta, bool zeroForOne)
     {
-        (address tokenIn, uint24 fee, address tokenOut) = path.decodeFirstPool();
+        (address tokenIn, address poolDeployer, address tokenOut) = path.decodeFirstPool();
 
         zeroForOne = isExactIn ? tokenIn < tokenOut : tokenOut < tokenIn;
 
-        (amount0Delta, amount1Delta) = IUniswapV3Pool(computePoolAddress(tokenIn, tokenOut, fee)).swap(
+        (amount0Delta, amount1Delta) = IAlgebraPool(computePoolAddress(tokenIn, poolDeployer, tokenOut)).swap(
             recipient,
             zeroForOne,
             amount,
@@ -152,7 +152,8 @@ abstract contract V3SwapRouter is UniswapImmutables, Permit2Payments, IUniswapV3
         );
     }
 
-    function computePoolAddress(address tokenA, address tokenB, uint24 fee) private view returns (address pool) {
+    /// @notice Deterministically computes the pool address given the poolDeployer and PoolKey
+    function computePoolAddress(address tokenA, address poolDeployer, address tokenB) internal view returns (address pool) {
         if (tokenA > tokenB) (tokenA, tokenB) = (tokenB, tokenA);
         pool = address(
             uint160(
@@ -160,9 +161,13 @@ abstract contract V3SwapRouter is UniswapImmutables, Permit2Payments, IUniswapV3
                     keccak256(
                         abi.encodePacked(
                             hex'ff',
-                            UNISWAP_V3_FACTORY,
-                            keccak256(abi.encode(tokenA, tokenB, fee)),
-                            UNISWAP_V3_POOL_INIT_CODE_HASH
+                            poolDeployer,
+                            keccak256(
+                                poolDeployer == address(0)
+                                    ? abi.encode(tokenA, tokenB)
+                                    : abi.encode(poolDeployer, tokenA, tokenB)
+                            ),
+                            ALGEBRA_INTEGRAL_POOL_INIT_CODE_HASH
                         )
                     )
                 )

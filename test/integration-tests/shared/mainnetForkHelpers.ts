@@ -3,7 +3,7 @@ import { abi as PERMIT2_ABI } from '../../../artifacts/permit2/src/interfaces/IP
 import { abi as INonfungiblePositionManager_ABI } from '../../../artifacts/@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol/INonfungiblePositionManager.json'
 import { PERMIT2_ADDRESS, V3_NFT_POSITION_MANAGER_MAINNET } from './constants'
 import { abi as V2_PAIR_ABI } from '../../../artifacts/@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol/IUniswapV2Pair.json'
-import { Currency, Token, WETH9 } from '@uniswap/sdk-core'
+import { Currency, Token, WETH } from '@uniswap/sdk-core'
 import { TransactionResponse } from '@ethersproject/abstract-provider'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, constants } from 'ethers'
@@ -12,7 +12,7 @@ import { MethodParameters } from '@uniswap/v3-sdk'
 import { Pair } from '@uniswap/v2-sdk'
 const { ethers } = hre
 
-export const WETH = WETH9[1]
+export const WETH = WETH[1]
 export const DAI = new Token(1, '0x6B175474E89094C44Da98b954EedeAC495271d0F', 18, 'DAI', 'Dai Stablecoin')
 export const USDC = new Token(1, '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 6, 'USDC', 'USD//C')
 export const USDT = new Token(1, '0xdAC17F958D2ee523a2206206994597C13D831ec7', 6, 'USDT', 'Tether USD')

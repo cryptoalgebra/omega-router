@@ -8,7 +8,7 @@ contract DeployPolygonMumbai is DeployUniversalRouter {
     function setUp() public override {
         params = RouterParameters({
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
-            weth9: 0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889,
+            weth: 0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889,
             v2Factory: UNSUPPORTED_PROTOCOL,
             v3Factory: 0x1F98431c8aD98523631AE4a59f267346ea31F984,
             pairInitCodeHash: BYTES32_ZERO,

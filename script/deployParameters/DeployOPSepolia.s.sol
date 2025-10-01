@@ -8,7 +8,7 @@ contract DeployOPSepolia is DeployUniversalRouter {
     function setUp() public override {
         params = RouterParameters({
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
-            weth9: 0x4200000000000000000000000000000000000006,
+            weth: 0x4200000000000000000000000000000000000006,
             v2Factory: UNSUPPORTED_PROTOCOL,
             v3Factory: 0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24,
             pairInitCodeHash: BYTES32_ZERO,
