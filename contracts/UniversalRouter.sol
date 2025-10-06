@@ -12,7 +12,7 @@ import {IUniversalRouter} from './interfaces/IUniversalRouter.sol';
 contract UniversalRouter is IUniversalRouter, Dispatcher {
     constructor(RouterParameters memory params)
         AlgebraImmutables(
-            AlgebraParameters(params.v2Factory, params.v3Factory, params.pairInitCodeHash, params.poolInitCodeHash)
+            AlgebraParameters(params.v2Factory, params.v3Factory, params.integralPoolDeployer, params.pairInitCodeHash, params.poolInitCodeHash)
         )
         PaymentsImmutables(PaymentsParameters(params.permit2, params.weth))
     {}

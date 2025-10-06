@@ -1,24 +1,32 @@
 import { ERC20, ERC20__factory, IPermit2, INonfungiblePositionManager } from '../../../typechain'
 import { abi as PERMIT2_ABI } from '../../../artifacts/permit2/src/interfaces/IPermit2.sol/IPermit2.json'
-import { abi as INonfungiblePositionManager_ABI } from '../../../artifacts/@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol/INonfungiblePositionManager.json'
+import { abi as INonfungiblePositionManager_ABI } from '../../../artifacts/@cryptoalgebra/integral-periphery/contracts/interfaces/INonfungiblePositionManager.sol/INonfungiblePositionManager.json'
 import { PERMIT2_ADDRESS, V3_NFT_POSITION_MANAGER_MAINNET } from './constants'
-import { abi as V2_PAIR_ABI } from '../../../artifacts/@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol/IUniswapV2Pair.json'
-import { Currency, Token, WETH } from '@uniswap/sdk-core'
+import { Currency, Token } from '@uniswap/sdk-core'
 import { TransactionResponse } from '@ethersproject/abstract-provider'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, constants } from 'ethers'
 import hre from 'hardhat'
-import { MethodParameters } from '@uniswap/v3-sdk'
-import { Pair } from '@uniswap/v2-sdk'
 const { ethers } = hre
 
-export const WETH = WETH[1]
-export const DAI = new Token(1, '0x6B175474E89094C44Da98b954EedeAC495271d0F', 18, 'DAI', 'Dai Stablecoin')
-export const USDC = new Token(1, '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 6, 'USDC', 'USD//C')
-export const USDT = new Token(1, '0xdAC17F958D2ee523a2206206994597C13D831ec7', 6, 'USDT', 'Tether USD')
-export const GALA = new Token(1, '0x15D4c048F83bd7e37d49eA4C83a07267Ec4203dA', 8, 'GALA', 'Gala')
-export const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45'
-export const V2_FACTORY = 0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f
+export const WETH = new Token(8453, '0x4200000000000000000000000000000000000006', 18, 'WETH', 'Wrapped Ether')
+export const DAI = new Token(8453, '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', 6, 'USDC', 'USD//C')
+export const USDC = new Token(8453, '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', 18, 'DAI', 'Dai Stablecoin')
+export const USDT = new Token(8453, '0xdAC17F958D2ee523a2206206994597C13D831ec7', 6, 'USDT', 'Tether USD')
+export const SWAP_ROUTER_V2 = '0x6f4bE24d7dC93b6ffcBAb3Fd0747c5817Cea3F9e'
+export const USDC_WHALE = '0x0772f014009162efB833eF34d3eA3f243FC735Ba'
+
+export interface MethodParameters {
+    /**
+     * The hex encoded calldata to perform the given operation
+     */
+    calldata: string;
+    /**
+     * The amount of ether (wei) to send in hex.
+     */
+    value: string;
+}
+
 
 export const approveSwapRouter02 = async (
   alice: SignerWithAddress,
@@ -38,18 +46,6 @@ export const approveSwapRouter02 = async (
   }
 }
 
-type Reserves = {
-  reserve0: BigNumber
-  reserve1: BigNumber
-}
-
-export const getV2PoolReserves = async (alice: SignerWithAddress, tokenA: Token, tokenB: Token): Promise<Reserves> => {
-  const contractAddress = Pair.getAddress(tokenA, tokenB)
-  const contract = new ethers.Contract(contractAddress, V2_PAIR_ABI, alice)
-
-  const { reserve0, reserve1 } = await contract.getReserves()
-  return { reserve0, reserve1 }
-}
 
 export const approveAndExecuteSwapRouter02 = async (
   methodParameters: MethodParameters,
@@ -96,8 +92,8 @@ export const resetFork = async () => {
     params: [
       {
         forking: {
-          jsonRpcUrl: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-          blockNumber: 20010000,
+          jsonRpcUrl: `https://rpc.ankr.com/base/${process.env.ANKR_API_KEY}`,
+          blockNumber: 36274285,
         },
       },
     ],

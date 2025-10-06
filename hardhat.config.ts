@@ -27,14 +27,17 @@ export default {
   networks: {
     hardhat: {
       allowUnlimitedContractSize: false,
-      chainId: 1,
+      chainId: 8453,
       forking: {
-        url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-        blockNumber: 20010000,
+        url: `https://rpc.ankr.com/base/${process.env.ANKR_API_KEY}`,
+        blockNumber: 36274285,
       },
+    accounts: {
+        mnemonic: "your custom mnemonic phrase goes here your custom mnemonic phrase goes here",
+    },
     },
     mainnet: {
-      url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      url: `https://rpc.ankr.com/eth/${process.env.ANKR_API_KEY}`,
     },
     ropsten: {
       url: `https://ropsten.infura.io/v3/${process.env.INFURA_API_KEY}`,
@@ -64,7 +67,7 @@ export default {
       url: `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
     },
     base: {
-      url: `https://developer-access-mainnet.base.org`,
+      url: `https://rpc.ankr.com/base/${process.env.ANKR_API_KEY}`,
     },
     baseGoerli: {
       url: `https://goerli.base.org`,

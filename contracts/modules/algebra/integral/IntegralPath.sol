@@ -3,9 +3,11 @@ pragma solidity >=0.6.0;
 
 import {IntegralBytesLib} from './IntegralBytesLib.sol';
 import {Constants} from '../../../libraries/Constants.sol';
+import {CalldataDecoder} from "../../../libraries/CalldataDecoder.sol";
 
 /// @title Functions for manipulating path data for multihop swaps
 library IntegralPath {
+    using CalldataDecoder for bytes;
     using IntegralBytesLib for bytes;
 
     /// @notice Returns true iff the path contains two or more pools

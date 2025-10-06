@@ -33,15 +33,19 @@
   },
   "dependencies": {
     "@cryptoalgebra/integral-core": "^1.2.9",
+    "@cryptoalgebra/integral-periphery": "^1.2.4",
     "@openzeppelin/contracts": "5.0.2"
   },
   "devDependencies": {
+    "@cryptoalgebra/integral-sdk": "^1.0.2",
     "@nomicfoundation/hardhat-chai-matchers": "1.0.4",
     "@nomicfoundation/hardhat-foundry": "1.1.2",
     "@nomiclabs/hardhat-ethers": "^2.2.2",
     "@typechain/ethers-v5": "^4.0.0",
     "@types/chai": "^4.2.6",
     "@types/mocha": "^5.2.7",
+    "@uniswap/sdk-core": "^7.7.2",
+    "@uniswap/v3-sdk": "^3.25.2",
     "bignumber.js": "^9.0.0",
     "chai": "^4.3.4",
     "dotenv": "^17.2.3",

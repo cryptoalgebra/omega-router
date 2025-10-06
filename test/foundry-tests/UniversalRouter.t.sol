@@ -27,11 +27,10 @@ contract UniversalRouterTest is Test {
             weth: address(0),
             v2Factory: address(0),
             v3Factory: address(0),
+            integralPoolDeployer: address(0),
             pairInitCodeHash: bytes32(0),
             poolInitCodeHash: bytes32(0),
-            v4PoolManager: address(0),
-            v3NFTPositionManager: address(0),
-            v4PositionManager: address(0)
+            v3NFTPositionManager: address(0)
         });
         router = new UniversalRouter(params);
         testModule = new ExampleModule();

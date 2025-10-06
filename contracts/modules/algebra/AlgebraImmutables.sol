@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 struct AlgebraParameters {
     address v2Factory;
     address integralFactory;
+    address integralPoolDeployer;
     bytes32 pairInitCodeHash;
     bytes32 integralPoolInitCodeHash;
 }
@@ -21,9 +22,13 @@ contract AlgebraImmutables {
     /// @notice The UniswapV3Pool initcodehash
     bytes32 internal immutable ALGEBRA_INTEGRAL_POOL_INIT_CODE_HASH;
 
+    /// @notice The address of Algebra Integral Pool Deployer
+    address internal immutable ALGEBRA_INTEGRAL_POOL_DEPLOYER;
+
     constructor(AlgebraParameters memory params) {
         UNISWAP_V2_FACTORY = params.v2Factory;
         UNISWAP_V2_PAIR_INIT_CODE_HASH = params.pairInitCodeHash;
+        ALGEBRA_INTEGRAL_POOL_DEPLOYER = params.integralPoolDeployer;
         ALGEBRA_INTEGRAL_FACTORY = params.integralFactory;
         ALGEBRA_INTEGRAL_POOL_INIT_CODE_HASH = params.integralPoolInitCodeHash;
     }

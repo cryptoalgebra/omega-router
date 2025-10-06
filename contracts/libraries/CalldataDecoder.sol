@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {Constants} from './Constants.sol';
+
 /// @title Library for abi decoding in calldata
 library CalldataDecoder {
     /// @notice mask used for offsets and lengths to ensure no overflow
@@ -13,6 +15,17 @@ library CalldataDecoder {
     uint256 constant SLICE_ERROR_SELECTOR = 0x3b99b53d;
 
     error SliceOutOfBounds();
+
+    /// @notice Returns the address starting at byte 0
+    /// @dev length and overflow checks must be carried out before calling
+    /// @param _bytes The input bytes string to slice
+    /// @return _address The address starting at byte 0
+    function toAddress(bytes calldata _bytes) internal pure returns (address _address) {
+        if (_bytes.length < Constants.ADDR_SIZE) revert SliceOutOfBounds();
+        assembly {
+            _address := shr(96, calldataload(_bytes.offset))
+        }
+    }
 
     /// @notice Decode the `_arg`-th element in `_bytes` as `bytes`
     /// @param _bytes The input bytes string to extract a bytes string from

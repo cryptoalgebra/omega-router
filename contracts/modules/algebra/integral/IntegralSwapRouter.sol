@@ -139,11 +139,11 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
         private
         returns (int256 amount0Delta, int256 amount1Delta, bool zeroForOne)
     {
-        (address tokenIn, address poolDeployer, address tokenOut) = path.decodeFirstPool();
+        (address tokenIn, address deployer, address tokenOut) = path.decodeFirstPool();
 
         zeroForOne = isExactIn ? tokenIn < tokenOut : tokenOut < tokenIn;
 
-        (amount0Delta, amount1Delta) = IAlgebraPool(computePoolAddress(tokenIn, poolDeployer, tokenOut)).swap(
+        (amount0Delta, amount1Delta) = IAlgebraPool(computePoolAddress(tokenIn, deployer, tokenOut)).swap(
             recipient,
             zeroForOne,
             amount,
@@ -153,7 +153,7 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
     }
 
     /// @notice Deterministically computes the pool address given the poolDeployer and PoolKey
-    function computePoolAddress(address tokenA, address poolDeployer, address tokenB) internal view returns (address pool) {
+    function computePoolAddress(address tokenA, address deployer, address tokenB) internal view returns (address pool) {
         if (tokenA > tokenB) (tokenA, tokenB) = (tokenB, tokenA);
         pool = address(
             uint160(
@@ -161,11 +161,11 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
                     keccak256(
                         abi.encodePacked(
                             hex'ff',
-                            poolDeployer,
+                            ALGEBRA_INTEGRAL_POOL_DEPLOYER,
                             keccak256(
-                                poolDeployer == address(0)
+                                deployer == address(0)
                                     ? abi.encode(tokenA, tokenB)
-                                    : abi.encode(poolDeployer, tokenA, tokenB)
+                                    : abi.encode(deployer, tokenA, tokenB)
                             ),
                             ALGEBRA_INTEGRAL_POOL_INIT_CODE_HASH
                         )

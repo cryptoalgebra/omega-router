@@ -8,10 +8,9 @@ struct RouterParameters {
     // Uniswap swapping parameters
     address v2Factory;
     address v3Factory;
+    address integralPoolDeployer;
     bytes32 pairInitCodeHash;
     bytes32 poolInitCodeHash;
-    address v4PoolManager;
     // Uniswap v3->v4 migration parameters
     address v3NFTPositionManager;
-    address v4PositionManager;
 }
