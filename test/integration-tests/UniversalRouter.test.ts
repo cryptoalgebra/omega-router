@@ -45,7 +45,7 @@ describe('UniversalRouter', () => {
     wethContract = new ethers.Contract(WETH.address, WETH_ABI, alice) as IWETH
     pair_DAI_WETH = await makePair(alice, DAI, WETH)
     permit2 = PERMIT2.connect(alice) as IPermit2
-    router = (await deployUniversalRouter(alice.address)).connect(alice) as UniversalRouter
+    router = (await deployUniversalRouter()).connect(alice) as UniversalRouter
   })
 
   describe('#execute', () => {
@@ -120,7 +120,7 @@ describe('UniversalRouter', () => {
       const sweepCalldata = routerInterface.encodeFunctionData('execute(bytes,bytes[])', [commands, inputs])
 
       const reentrantWETH = await (await ethers.getContractFactory('ReenteringWETH')).deploy()
-      router = (await deployUniversalRouter(alice.address, undefined, reentrantWETH.address)).connect(
+      router = (await deployUniversalRouter(reentrantWETH.address)).connect(
         alice
       ) as UniversalRouter
       await reentrantWETH.setParameters(router.address, sweepCalldata)

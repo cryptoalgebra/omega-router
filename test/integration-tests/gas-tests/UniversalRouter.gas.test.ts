@@ -27,7 +27,7 @@ describe('UniversalRouter Gas Tests', () => {
     })
     daiContract = new ethers.Contract(DAI.address, TOKEN_ABI, alice) as ERC20
     wethContract = new ethers.Contract(WETH.address, WETH_ABI, alice) as IWETH
-    router = (await deployUniversalRouter(alice.address)).connect(alice) as UniversalRouter
+    router = (await deployUniversalRouter()).connect(alice) as UniversalRouter
     planner = new RoutePlanner()
   })
 

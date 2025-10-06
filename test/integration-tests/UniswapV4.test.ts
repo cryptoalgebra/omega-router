@@ -88,7 +88,7 @@ describe('Uniswap V4 Tests:', () => {
     usdcContract = new ethers.Contract(USDC.address, TOKEN_ABI, bob)
     permit2 = PERMIT2.connect(bob) as IPermit2
     v4PoolManager = (await deployV4PoolManager(bob.address)).connect(bob) as PoolManager
-    router = (await deployUniversalRouter(undefined, v4PoolManager.address)).connect(bob) as UniversalRouter
+    router = (await deployUniversalRouter()).connect(bob) as UniversalRouter
     v4PositionManager = (await ethers.getContractAt('PositionManager', await router.V4_POSITION_MANAGER())).connect(
       bob
     ) as PositionManager
