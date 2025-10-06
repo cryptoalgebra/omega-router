@@ -1,7 +1,7 @@
 import { ERC20, ERC20__factory, IPermit2, INonfungiblePositionManager } from '../../../typechain'
 import { abi as PERMIT2_ABI } from '../../../artifacts/permit2/src/interfaces/IPermit2.sol/IPermit2.json'
 import { abi as INonfungiblePositionManager_ABI } from '../../../artifacts/@cryptoalgebra/integral-periphery/contracts/interfaces/INonfungiblePositionManager.sol/INonfungiblePositionManager.json'
-import { PERMIT2_ADDRESS, V3_NFT_POSITION_MANAGER_MAINNET } from './constants'
+import { PERMIT2_ADDRESS, INTEGRAL_NFT_POSITION_MANAGER_MAINNET } from './constants'
 import { Currency, Token } from '@uniswap/sdk-core'
 import { TransactionResponse } from '@ethersproject/abstract-provider'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -102,7 +102,7 @@ export const resetFork = async () => {
 
 export const PERMIT2 = new ethers.Contract(PERMIT2_ADDRESS, PERMIT2_ABI) as IPermit2
 
-export const V3_NFT_POSITION_MANAGER = new ethers.Contract(
-  V3_NFT_POSITION_MANAGER_MAINNET,
+export const INTEGRAL_NFT_POSITION_MANAGER = new ethers.Contract(
+  INTEGRAL_NFT_POSITION_MANAGER_MAINNET,
   INonfungiblePositionManager_ABI
 ) as INonfungiblePositionManager

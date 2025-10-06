@@ -36,12 +36,12 @@ abstract contract DeployUniversalRouter is Script {
         params = RouterParameters({
             permit2: mapUnsupported(params.permit2),
             weth: mapUnsupported(params.weth),
-            v2Factory: mapUnsupported(params.v2Factory),
-            v3Factory: mapUnsupported(params.v3Factory),
-            pairInitCodeHash: params.pairInitCodeHash,
-            poolInitCodeHash: params.poolInitCodeHash,
+            v2Factory: mapUnsupported(params.uniswapV2Factory),
+            v3Factory: mapUnsupported(params.uniswapV3Factory),
+            pairInitCodeHash: params.uniswapPairInitCodeHash,
+            poolInitCodeHash: params.integralPoolInitCodeHash,
             v4PoolManager: mapUnsupported(params.v4PoolManager),
-            v3NFTPositionManager: mapUnsupported(params.v3NFTPositionManager),
+            v3NFTPositionManager: mapUnsupported(params.integralPosManager),
             v4PositionManager: mapUnsupported(params.v4PositionManager)
         });
 
@@ -55,10 +55,10 @@ abstract contract DeployUniversalRouter is Script {
     function logParams() internal view {
         console2.log('permit2:', params.permit2);
         console2.log('weth:', params.weth);
-        console2.log('v2Factory:', params.v2Factory);
-        console2.log('v3Factory:', params.v3Factory);
+        console2.log('v2Factory:', params.uniswapV2Factory);
+        console2.log('v3Factory:', params.uniswapV3Factory);
         console2.log('v4PoolManager:', params.v4PoolManager);
-        console2.log('v3NFTPositionManager:', params.v3NFTPositionManager);
+        console2.log('v3NFTPositionManager:', params.integralPosManager);
         console2.log('v4PositionManager:', params.v4PositionManager);
     }
 

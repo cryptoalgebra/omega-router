@@ -6,11 +6,13 @@ struct RouterParameters {
     address permit2;
     address weth;
     // Uniswap swapping parameters
-    address v2Factory;
-    address v3Factory;
+    address uniswapV2Factory;
+    address uniswapV3Factory;
+    bytes32 uniswapPairInitCodeHash;
+    bytes32 uniswapPoolInitCodeHash;
+    // Algebra Integral parameters
+    address integralFactory;
     address integralPoolDeployer;
-    bytes32 pairInitCodeHash;
-    bytes32 poolInitCodeHash;
-    // Uniswap v3->v4 migration parameters
-    address v3NFTPositionManager;
+    bytes32 integralPoolInitCodeHash;
+    address integralPosManager;
 }

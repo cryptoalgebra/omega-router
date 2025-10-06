@@ -6,13 +6,17 @@ import {Dispatcher} from './base/Dispatcher.sol';
 import {RouterParameters} from './types/RouterParameters.sol';
 import {PaymentsImmutables, PaymentsParameters} from './modules/PaymentsImmutables.sol';
 import {AlgebraImmutables, AlgebraParameters} from './modules/algebra/AlgebraImmutables.sol';
+import {UniswapImmutables, UniswapParameters} from './modules/uniswap/UniswapImmutables.sol';
 import {Commands} from './libraries/Commands.sol';
 import {IUniversalRouter} from './interfaces/IUniversalRouter.sol';
 
 contract UniversalRouter is IUniversalRouter, Dispatcher {
     constructor(RouterParameters memory params)
         AlgebraImmutables(
-            AlgebraParameters(params.v2Factory, params.v3Factory, params.integralPoolDeployer, params.pairInitCodeHash, params.poolInitCodeHash)
+            AlgebraParameters(params.integralFactory, params.integralPoolDeployer, params.integralPoolInitCodeHash)
+        )
+        UniswapImmutables(
+            UniswapParameters(params.uniswapV2Factory, params.uniswapV3Factory, params.uniswapPairInitCodeHash, params.uniswapPoolInitCodeHash)
         )
         PaymentsImmutables(PaymentsParameters(params.permit2, params.weth))
     {}

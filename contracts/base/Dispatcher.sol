@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 //import {V2SwapRouter} from '../modules/uniswap/v2/V2SwapRouter.sol';
-//import {V3SwapRouter} from '../modules/uniswap/v3/V3SwapRouter.sol';
+import {V3SwapRouter} from '../modules/uniswap/v3/V3SwapRouter.sol';
 //import {V4SwapRouter} from '../modules/uniswap/v4/V4SwapRouter.sol';
 import {IntegralSwapRouter} from '../modules/algebra/integral/IntegralSwapRouter.sol';
 import {IntegralBytesLib} from "../modules/algebra/integral/IntegralBytesLib.sol";
@@ -20,7 +20,7 @@ import {CalldataDecoder} from '../libraries/CalldataDecoder.sol';
 
 /// @title Decodes and Executes Commands
 /// @notice Called by the UniversalRouter contract to efficiently decode and execute a singular command
-abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter {
+abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter {
     using IntegralBytesLib for bytes;
     using CalldataDecoder for bytes;
 

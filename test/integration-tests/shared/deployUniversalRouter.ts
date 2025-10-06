@@ -2,14 +2,15 @@ import hre from 'hardhat'
 const { ethers } = hre
 import { UniversalRouter } from '../../../typechain'
 import {
-  V2_FACTORY_MAINNET,
-  V3_FACTORY_MAINNET,
-  V2_INIT_CODE_HASH_MAINNET,
-  V3_INIT_CODE_HASH_MAINNET,
+  UNISWAP_V2_FACTORY_MAINNET,
+  UNISWAP_V3_FACTORY_MAINNET,
+  UNISWAP_V2_INIT_CODE_HASH_MAINNET,
+  UNISWAP_V3_INIT_CODE_HASH_MAINNET,
   PERMIT2_ADDRESS,
-  V3_NFT_POSITION_MANAGER_MAINNET,
+  INTEGRAL_NFT_POSITION_MANAGER_MAINNET,
   INTEGRAL_POOL_DEPLOYER,
-  WETH
+  WETH, INTEGRAL_FACTORY_MAINNET,
+  INTEGRAL_INIT_CODE_HASH_MAINNET
 } from './constants'
 
 export async function deployRouter(
@@ -19,12 +20,14 @@ export async function deployRouter(
   const routerParameters = {
     permit2: PERMIT2_ADDRESS,
     weth: mockReentrantWETH ?? WETH,
-    v2Factory: V2_FACTORY_MAINNET,
-    v3Factory: V3_FACTORY_MAINNET,
+    uniswapV2Factory: UNISWAP_V2_FACTORY_MAINNET,
+    uniswapV3Factory: UNISWAP_V3_FACTORY_MAINNET,
+    uniswapPairInitCodeHash: UNISWAP_V2_INIT_CODE_HASH_MAINNET,
+    uniswapPoolInitCodeHash: UNISWAP_V3_INIT_CODE_HASH_MAINNET,
+    integralFactory: INTEGRAL_FACTORY_MAINNET,
     integralPoolDeployer: INTEGRAL_POOL_DEPLOYER,
-    pairInitCodeHash: V2_INIT_CODE_HASH_MAINNET,
-    poolInitCodeHash: V3_INIT_CODE_HASH_MAINNET,
-    v3NFTPositionManager: V3_NFT_POSITION_MANAGER_MAINNET,
+    integralPoolInitCodeHash: INTEGRAL_INIT_CODE_HASH_MAINNET,
+    integralPosManager: INTEGRAL_NFT_POSITION_MANAGER_MAINNET,
   }
 
   const routerFactory = await ethers.getContractFactory('UniversalRouter')

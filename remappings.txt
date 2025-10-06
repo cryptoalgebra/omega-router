@@ -4,3 +4,4 @@ forge-std/=lib/forge-std/src/
 @cryptoalgebra/integral-core/=node_modules/@cryptoalgebra/integral-core/
 @cryptoalgebra/integral-periphery=node_modules/@cryptoalgebra/integral-periphery/
 @openzeppelin/=node_modules/@openzeppelin/
+@uniswap/v3-core=node_modules/@uniswap/v3-core

@@ -25,12 +25,14 @@ contract UniversalRouterTest is Test {
         RouterParameters memory params = RouterParameters({
             permit2: address(0),
             weth: address(0),
-            v2Factory: address(0),
-            v3Factory: address(0),
+            uniswapV2Factory: address(0),
+            uniswapV3Factory: address(0),
+            uniswapPairInitCodeHash: bytes32(0),
+            uniswapPoolInitCodeHash: bytes32(0),
+            integralFactory: address(0),
             integralPoolDeployer: address(0),
-            pairInitCodeHash: bytes32(0),
-            poolInitCodeHash: bytes32(0),
-            v3NFTPositionManager: address(0)
+            integralPoolInitCodeHash: bytes32(0),
+            integralPosManager: address(0)
         });
         router = new UniversalRouter(params);
         testModule = new ExampleModule();
