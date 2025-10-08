@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-//import {V2SwapRouter} from '../modules/uniswap/v2/V2SwapRouter.sol';
+import {V2SwapRouter} from '../modules/uniswap/v2/V2SwapRouter.sol';
 import {V3SwapRouter} from '../modules/uniswap/v3/V3SwapRouter.sol';
 import {IntegralSwapRouter} from '../modules/algebra/integral/IntegralSwapRouter.sol';
 import {IntegralBytesLib} from "../modules/algebra/integral/IntegralBytesLib.sol";
@@ -18,7 +18,7 @@ import {CalldataDecoder} from '../libraries/CalldataDecoder.sol';
 
 /// @title Decodes and Executes Commands
 /// @notice Called by the UniversalRouter contract to efficiently decode and execute a singular command
-abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter, ERC4626WrapUnwrap {
+abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter, V2SwapRouter, ERC4626WrapUnwrap {
     using IntegralBytesLib for bytes;
     using CalldataDecoder for bytes;
 
@@ -162,7 +162,39 @@ abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter
                         erc4626Wrap(wrapper, underlyingToken, amountIn, amountOutMin);
                     }
                 } else {
-                    if (command == Commands.PERMIT2_PERMIT) {
+                    if (command == Commands.V2_SWAP_EXACT_IN) {
+                        // equivalent: abi.decode(inputs, (address, uint256, uint256, bytes, bool))
+                        address recipient;
+                        uint256 amountIn;
+                        uint256 amountOutMin;
+                        bool payerIsUser;
+                        assembly {
+                            recipient := calldataload(inputs.offset)
+                            amountIn := calldataload(add(inputs.offset, 0x20))
+                            amountOutMin := calldataload(add(inputs.offset, 0x40))
+                            // 0x60 offset is the path, decoded below
+                            payerIsUser := calldataload(add(inputs.offset, 0x80))
+                        }
+                        address[] calldata path = inputs.toAddressArray(3);
+                        address payer = payerIsUser ? msgSender() : address(this);
+                        v2SwapExactInput(map(recipient), amountIn, amountOutMin, path, payer);
+                    } else if (command == Commands.V2_SWAP_EXACT_OUT) {
+                        // equivalent: abi.decode(inputs, (address, uint256, uint256, bytes, bool))
+                        address recipient;
+                        uint256 amountOut;
+                        uint256 amountInMax;
+                        bool payerIsUser;
+                        assembly {
+                            recipient := calldataload(inputs.offset)
+                            amountOut := calldataload(add(inputs.offset, 0x20))
+                            amountInMax := calldataload(add(inputs.offset, 0x40))
+                            // 0x60 offset is the path, decoded below
+                            payerIsUser := calldataload(add(inputs.offset, 0x80))
+                        }
+                        address[] calldata path = inputs.toAddressArray(3);
+                        address payer = payerIsUser ? msgSender() : address(this);
+                        v2SwapExactOutput(map(recipient), amountOut, amountInMax, path, payer);
+                    } else if (command == Commands.PERMIT2_PERMIT) {
                         // equivalent: abi.decode(inputs, (IAllowanceTransfer.PermitSingle, bytes))
                         IAllowanceTransfer.PermitSingle calldata permitSingle;
                         assembly {
@@ -271,7 +303,14 @@ abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter
                 }
             }
         } else {
-            revert InvalidCommandType(command);
+            // 0x21 <= command
+            if (command == Commands.EXECUTE_SUB_PLAN) {
+                (bytes calldata _commands, bytes[] calldata _inputs) = inputs.decodeActionsRouterParams();
+                (success, output) = (address(this)).call(abi.encodeCall(Dispatcher.execute, (_commands, _inputs)));
+            } else {
+                // placeholder area for commands 0x22-0x3f
+                revert InvalidCommandType(command);
+            }
         }
     }
 

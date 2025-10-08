@@ -35,6 +35,7 @@
     "@cryptoalgebra/integral-core": "^1.2.9",
     "@cryptoalgebra/integral-periphery": "^1.2.4",
     "@openzeppelin/contracts": "5.0.2",
+    "@uniswap/v2-core": "^1.0.1",
     "@uniswap/v3-core": "^1.0.1"
   },
   "devDependencies": {
@@ -45,7 +46,10 @@
     "@typechain/ethers-v5": "^4.0.0",
     "@types/chai": "^4.2.6",
     "@types/mocha": "^5.2.7",
+    "@uniswap/router-sdk": "^2.0.4",
     "@uniswap/sdk-core": "^7.7.2",
+    "@uniswap/snapshot-gas-cost": "^1.0.0",
+    "@uniswap/v2-sdk": "^4.15.2",
     "@uniswap/v3-sdk": "^3.25.2",
     "bignumber.js": "^9.0.0",
     "chai": "^4.3.4",

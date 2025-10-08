@@ -24,7 +24,6 @@ import { RoutePlanner, CommandType } from './shared/planner'
 import hre from 'hardhat'
 import { executeRouter } from './shared/executeRouter'
 import { getPermitSignature, PermitSingle } from './shared/protocolHelpers/permit2'
-import { ADDRESS_ZERO } from '@uniswap/v3-sdk'
 const { ethers } = hre
 
 describe('Uniswap V2 Tests:', () => {

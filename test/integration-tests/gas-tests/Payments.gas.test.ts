@@ -10,9 +10,9 @@ import deployUniversalRouter from '../shared/deployUniversalRouter'
 import { RoutePlanner, CommandType } from '../shared/planner'
 import snapshotGasCost from '@uniswap/snapshot-gas-cost'
 const { ethers } = hre
-import WETH_ABI from '../../../artifacts/@uniswap/v4-periphery/src/interfaces/external/IWETH.sol/IWETH.json'
+import WETH_ABI from '../../../artifacts/contracts/interfaces/IWETH.sol/IWETH.json'
 import { BigNumber } from 'ethers'
-import { ADDRESS_THIS } from '@uniswap/router-sdk'
+import { ADDRESS_THIS } from '../shared/constants'
 
 describe('Payments Gas Tests', () => {
   let alice: SignerWithAddress

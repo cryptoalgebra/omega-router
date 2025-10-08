@@ -1,6 +1,6 @@
 import type { Contract } from '@ethersproject/contracts'
 import { TransactionReceipt } from '@ethersproject/abstract-provider'
-import {ALGEBRA_INTEGRAL_EVENTS, parseEvents, UNISWAP_V3_EVENTS} from './parseEvents'
+import {ALGEBRA_INTEGRAL_EVENTS, parseEvents, UNISWAP_V3_EVENTS, V2_EVENTS} from './parseEvents'
 import { BigNumber, BigNumberish } from 'ethers'
 import { UniversalRouter } from '../../../typechain'
 import { DEADLINE } from './constants'
@@ -8,6 +8,13 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { RoutePlanner } from './planner'
 import hre from 'hardhat'
 const { ethers } = hre
+
+type V2SwapEventArgs = {
+  amount0In: BigNumber
+  amount0Out: BigNumber
+  amount1In: BigNumber
+  amount1Out: BigNumber
+}
 
 type V3SwapEventArgs = {
   amount0: BigNumber
@@ -23,6 +30,7 @@ type ExecutionParams = {
   usdcBalanceAfter: BigNumber
   ethBalanceBefore: BigNumber
   ethBalanceAfter: BigNumber
+  v2SwapEventArgs: V2SwapEventArgs | undefined
   v3SwapEventArgs: V3SwapEventArgs | undefined
   receipt: TransactionReceipt
   gasSpent: BigNumber
@@ -63,7 +71,7 @@ export async function executeRouter(
         return parseEvents(UNISWAP_V3_EVENTS, receipt)[0]?.args as unknown as V3SwapEventArgs
     }
   })()
-
+  const v2SwapEventArgs = parseEvents(V2_EVENTS, receipt)[0]?.args as unknown as V2SwapEventArgs
 
   const ethBalanceAfter: BigNumber = await ethers.provider.getBalance(caller.address)
   const wethBalanceAfter: BigNumber = await wethContract.balanceOf(caller.address)
@@ -80,6 +88,7 @@ export async function executeRouter(
     ethBalanceBefore,
     ethBalanceAfter,
     v3SwapEventArgs,
+    v2SwapEventArgs,
     receipt,
     gasSpent,
   }
