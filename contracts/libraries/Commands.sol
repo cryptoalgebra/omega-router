@@ -19,7 +19,7 @@ library Commands {
     uint256 constant SWEEP = 0x04;
     uint256 constant TRANSFER = 0x05;
     uint256 constant PAY_PORTION = 0x06;
-    // COMMAND_PLACEHOLDER = 0x07;
+    uint256 constant ERC4626_WRAP = 0x07;
 
     // Command Types where 0x08<=value<=0x0f, executed in the second nested-if block
     uint256 constant V2_SWAP_EXACT_IN = 0x08;
@@ -29,7 +29,7 @@ library Commands {
     uint256 constant UNWRAP_WETH = 0x0c;
     uint256 constant PERMIT2_TRANSFER_FROM_BATCH = 0x0d;
     uint256 constant BALANCE_CHECK_ERC20 = 0x0e;
-    // COMMAND_PLACEHOLDER = 0x0f;
+    uint256 constant ERC4626_UNWRAP = 0x0f;
 
     // Command Types where 0x10<=value<=0x20, executed in the third nested-if block
     uint256 constant UNISWAP_V3_SWAP_EXACT_IN = 0x10;

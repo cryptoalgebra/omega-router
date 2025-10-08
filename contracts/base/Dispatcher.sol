@@ -3,24 +3,22 @@ pragma solidity ^0.8.24;
 
 //import {V2SwapRouter} from '../modules/uniswap/v2/V2SwapRouter.sol';
 import {V3SwapRouter} from '../modules/uniswap/v3/V3SwapRouter.sol';
-//import {V4SwapRouter} from '../modules/uniswap/v4/V4SwapRouter.sol';
 import {IntegralSwapRouter} from '../modules/algebra/integral/IntegralSwapRouter.sol';
 import {IntegralBytesLib} from "../modules/algebra/integral/IntegralBytesLib.sol";
+import {PaymentsImmutables} from '../modules/PaymentsImmutables.sol';
+import {ERC4626WrapUnwrap} from "../modules/ERC4626WrapUnwrap.sol";
 import {Payments} from '../modules/Payments.sol';
 import {PaymentsImmutables} from '../modules/PaymentsImmutables.sol';
-//import {V3ToV4Migrator} from '../modules/V3ToV4Migrator.sol';
 import {Commands} from '../libraries/Commands.sol';
 import {Lock} from './Lock.sol';
 import {ERC20} from 'solmate/src/tokens/ERC20.sol';
 import {IAllowanceTransfer} from 'permit2/src/interfaces/IAllowanceTransfer.sol';
 import {ActionConstants} from '../libraries/ActionConstants.sol';
 import {CalldataDecoder} from '../libraries/CalldataDecoder.sol';
-//import {PoolKey} from '@uniswap/v4-core/src/types/PoolKey.sol';
-//import {IPoolManager} from '@uniswap/v4-core/src/interfaces/IPoolManager.sol';
 
 /// @title Decodes and Executes Commands
 /// @notice Called by the UniversalRouter contract to efficiently decode and execute a singular command
-abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter {
+abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter, ERC4626WrapUnwrap {
     using IntegralBytesLib for bytes;
     using CalldataDecoder for bytes;
 
@@ -149,8 +147,19 @@ abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter
                         }
                         Payments.payPortion(token, map(recipient), bips);
                     } else {
-                        // placeholder area for command 0x07
-                        revert InvalidCommandType(command);
+                        // the only way to be here is command 0x07 == ERC4626_WRAP
+                        // equivalent:  abi.decode(inputs, (address, address, uint256, uint256))
+                        address wrapper;
+                        address underlyingToken;
+                        uint256 amountIn;
+                        uint256 amountOutMin;
+                        assembly {
+                            wrapper := calldataload(inputs.offset)
+                            underlyingToken := calldataload(add(inputs.offset, 0x20))
+                            amountIn := calldataload(add(inputs.offset, 0x40))
+                            amountOutMin := calldataload(add(inputs.offset, 0x60))
+                        }
+                        erc4626Wrap(wrapper, underlyingToken, amountIn, amountOutMin);
                     }
                 } else {
                     if (command == Commands.PERMIT2_PERMIT) {
@@ -207,8 +216,17 @@ abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter
                         success = (ERC20(token).balanceOf(owner) >= minBalance);
                         if (!success) output = abi.encodePacked(BalanceTooLow.selector);
                     } else {
-                        // placeholder area for command 0x0f
-                        revert InvalidCommandType(command);
+                        // the only way to be here is command 0x0f == ERC4626_UNWRAP
+                        // equivalent:  abi.decode(inputs, (address, uint256, uint256))
+                        address wrapper;
+                        uint256 amountIn;
+                        uint256 amountOutMin;
+                        assembly {
+                            wrapper := calldataload(inputs.offset)
+                            amountIn := calldataload(add(inputs.offset, 0x40))
+                            amountOutMin := calldataload(add(inputs.offset, 0x60))
+                        }
+                        erc4626Unwrap(wrapper, amountIn, amountOutMin);
                     }
                 }
             } else {

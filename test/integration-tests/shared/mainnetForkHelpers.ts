@@ -13,7 +13,11 @@ export const MAINNET_WETH = WETH9[1]
 export const MAINNET_DAI = new Token(1, '0x6B175474E89094C44Da98b954EedeAC495271d0F', 18, 'DAI', 'Dai Stablecoin')
 export const MAINNET_USDC = new Token(1, '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 6, 'USDC', 'USD//C')
 export const MAINNET_USDT = new Token(1, '0xdAC17F958D2ee523a2206206994597C13D831ec7', 6, 'USDT', 'Tether USD')
+export const MAINNET_WA_USDC = new Token(1, '0xd4fa2d31b7968e448877f69a96de69f5de8cd23e', 6, 'waUSDC', 'Wrapped Aave USDC')
 export const MAINNET_GALA = new Token(1, '0x15D4c048F83bd7e37d49eA4C83a07267Ec4203dA', 8, 'GALA', 'Gala')
+
+export const MAINNET_USDC_WHALE = '0x0b07f64ABc342B68AEc57c0936E4B6fD4452967E'
+
 
 export const BASE_WETH = new Token(8453, '0x4200000000000000000000000000000000000006', 18, 'WETH', 'Wrapped Ether')
 export const BASE_USDC = new Token(8453, '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', 6, 'USDC', 'USD//C')
