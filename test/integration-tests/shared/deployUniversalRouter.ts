@@ -9,9 +9,10 @@ import {
   PERMIT2_ADDRESS,
   INTEGRAL_NFT_POSITION_MANAGER_MAINNET,
   INTEGRAL_POOL_DEPLOYER,
-  WETH, INTEGRAL_FACTORY_MAINNET,
+  INTEGRAL_FACTORY_MAINNET,
   INTEGRAL_INIT_CODE_HASH_MAINNET
 } from './constants'
+import {MAINNET_WETH} from "./mainnetForkHelpers";
 
 export async function deployRouter(
     mockReentrantWETH?: string
@@ -19,7 +20,7 @@ export async function deployRouter(
 
   const routerParameters = {
     permit2: PERMIT2_ADDRESS,
-    weth: mockReentrantWETH ?? WETH,
+    weth: mockReentrantWETH ?? MAINNET_WETH.address,
     uniswapV2Factory: UNISWAP_V2_FACTORY_MAINNET,
     uniswapV3Factory: UNISWAP_V3_FACTORY_MAINNET,
     uniswapPairInitCodeHash: UNISWAP_V2_INIT_CODE_HASH_MAINNET,

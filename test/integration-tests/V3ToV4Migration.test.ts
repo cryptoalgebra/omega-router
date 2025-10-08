@@ -3,11 +3,11 @@ import { expect } from './shared/expect'
 import { BigNumber } from 'ethers'
 import { UniversalRouter, INonfungiblePositionManager, PositionManager } from '../../typechain'
 import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
-import { resetFork, WETH, DAI, USDC, INTEGRAL_NFT_POSITION_MANAGER } from './shared/mainnetForkHelpers'
+import { resetFork, MAINNET_WETH, MAINNET_DAI, MAINNET_USDC, INTEGRAL_NFT_POSITION_MANAGER } from './shared/mainnetForkHelpers'
 import { abi as POOL_MANAGER_ABI } from '../../artifacts/@uniswap/v4-core/src/PoolManager.sol/PoolManager.json'
 import {
   ZERO_ADDRESS,
-  ALICE_ADDRESS,
+  MAINNET_ALICE_ADDRESS,
   MAX_UINT,
   MAX_UINT128,
   OPEN_DELTA,
@@ -58,14 +58,14 @@ describe('V3 to V4 Migration Tests:', () => {
     await resetFork()
     await hre.network.provider.request({
       method: 'hardhat_impersonateAccount',
-      params: [ALICE_ADDRESS],
+      params: [MAINNET_ALICE_ADDRESS],
     })
-    alice = await ethers.getSigner(ALICE_ADDRESS)
+    alice = await ethers.getSigner(MAINNET_ALICE_ADDRESS)
     bob = (await ethers.getSigners())[1]
     eve = (await ethers.getSigners())[2]
-    daiContract = new ethers.Contract(DAI.address, TOKEN_ABI, bob)
-    wethContract = new ethers.Contract(WETH.address, TOKEN_ABI, bob)
-    usdcContract = new ethers.Contract(USDC.address, TOKEN_ABI, bob)
+    daiContract = new ethers.Contract(MAINNET_DAI.address, TOKEN_ABI, bob)
+    wethContract = new ethers.Contract(MAINNET_WETH.address, TOKEN_ABI, bob)
+    usdcContract = new ethers.Contract(MAINNET_USDC.address, TOKEN_ABI, bob)
     v3NFTPositionManager = INTEGRAL_NFT_POSITION_MANAGER.connect(bob) as INonfungiblePositionManager
     router = (await deployUniversalRouter()) as UniversalRouter
     v4PositionManagerAddress = await router.V4_POSITION_MANAGER()
@@ -91,8 +91,8 @@ describe('V3 to V4 Migration Tests:', () => {
 
       // need to mint the nft to bob
       const tx = await v3NFTPositionManager.mint({
-        token0: USDC.address,
-        token1: WETH.address,
+        token0: MAINNET_USDC.address,
+        token1: MAINNET_WETH.address,
         fee: FeeAmount.LOW,
         tickLower: 0,
         tickUpper: 194980,
@@ -980,8 +980,8 @@ describe('V3 to V4 Migration Tests:', () => {
 
     it('initializes a pool', async () => {
       const poolKey = {
-        currency0: USDC.address,
-        currency1: WETH.address,
+        currency0: MAINNET_USDC.address,
+        currency1: MAINNET_WETH.address,
         fee: FeeAmount.HIGH, // to make it different to USDC_WETH.poolKey
         tickSpacing: 10,
         hooks: '0x0000000000000000000000000000000000000000',
@@ -1019,10 +1019,10 @@ describe('V3 to V4 Migration Tests:', () => {
         '0x',
       ])
 
-      v4Planner.addAction(Actions.SETTLE, [USDC.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SETTLE, [WETH.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SWEEP, [USDC.address, bob.address])
-      v4Planner.addAction(Actions.SWEEP, [WETH.address, bob.address])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_USDC.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_WETH.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_USDC.address, bob.address])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_WETH.address, bob.address])
 
       const calldata = encodeModifyLiquidities({ unlockData: v4Planner.finalize(), deadline: MAX_UINT })
 
@@ -1069,10 +1069,10 @@ describe('V3 to V4 Migration Tests:', () => {
         '0x',
       ])
 
-      v4Planner.addAction(Actions.SETTLE, [USDC.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SETTLE, [WETH.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SWEEP, [USDC.address, bob.address])
-      v4Planner.addAction(Actions.SWEEP, [WETH.address, bob.address])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_USDC.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_WETH.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_USDC.address, bob.address])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_WETH.address, bob.address])
 
       const calldata = encodeModifyLiquidities({ unlockData: v4Planner.finalize(), deadline: MAX_UINT })
 
@@ -1113,10 +1113,10 @@ describe('V3 to V4 Migration Tests:', () => {
         '0x',
       ])
 
-      v4Planner.addAction(Actions.SETTLE, [USDC.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SETTLE, [WETH.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SWEEP, [USDC.address, bob.address])
-      v4Planner.addAction(Actions.SWEEP, [WETH.address, bob.address])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_USDC.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_WETH.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_USDC.address, bob.address])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_WETH.address, bob.address])
 
       let calldata = encodeModifyLiquidities({ unlockData: v4Planner.finalize(), deadline: MAX_UINT })
 
@@ -1169,10 +1169,10 @@ describe('V3 to V4 Migration Tests:', () => {
         '0x',
       ])
 
-      v4Planner.addAction(Actions.SETTLE, [USDC.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SETTLE, [WETH.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SWEEP, [USDC.address, bob.address])
-      v4Planner.addAction(Actions.SWEEP, [WETH.address, bob.address])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_USDC.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_WETH.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_USDC.address, bob.address])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_WETH.address, bob.address])
 
       let calldata = encodeModifyLiquidities({ unlockData: v4Planner.finalize(), deadline: MAX_UINT })
 
@@ -1192,10 +1192,10 @@ describe('V3 to V4 Migration Tests:', () => {
 
       v4Planner.addAction(Actions.INCREASE_LIQUIDITY, [expectedTokenId, '6000000', MAX_UINT128, MAX_UINT128, '0x'])
 
-      v4Planner.addAction(Actions.SETTLE, [USDC.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SETTLE, [WETH.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SWEEP, [USDC.address, bob.address])
-      v4Planner.addAction(Actions.SWEEP, [WETH.address, bob.address])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_USDC.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_WETH.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_USDC.address, bob.address])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_WETH.address, bob.address])
 
       calldata = encodeModifyLiquidities({ unlockData: v4Planner.finalize(), deadline: MAX_UINT })
 
@@ -1227,10 +1227,10 @@ describe('V3 to V4 Migration Tests:', () => {
         '0x',
       ])
 
-      v4Planner.addAction(Actions.SETTLE, [USDC.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SETTLE, [WETH.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SWEEP, [USDC.address, bob.address])
-      v4Planner.addAction(Actions.SWEEP, [WETH.address, bob.address])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_USDC.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_WETH.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_USDC.address, bob.address])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_WETH.address, bob.address])
 
       let calldata = encodeModifyLiquidities({ unlockData: v4Planner.finalize(), deadline: MAX_UINT })
 
@@ -1246,8 +1246,8 @@ describe('V3 to V4 Migration Tests:', () => {
 
       v4Planner.addAction(Actions.DECREASE_LIQUIDITY, [expectedTokenId, '6000000', 0, 0, '0x'])
 
-      v4Planner.addAction(Actions.CLOSE_CURRENCY, [USDC.address])
-      v4Planner.addAction(Actions.CLOSE_CURRENCY, [WETH.address])
+      v4Planner.addAction(Actions.CLOSE_CURRENCY, [MAINNET_USDC.address])
+      v4Planner.addAction(Actions.CLOSE_CURRENCY, [MAINNET_WETH.address])
 
       calldata = encodeModifyLiquidities({ unlockData: v4Planner.finalize(), deadline: MAX_UINT })
 
@@ -1275,10 +1275,10 @@ describe('V3 to V4 Migration Tests:', () => {
         '0x',
       ])
 
-      v4Planner.addAction(Actions.SETTLE, [USDC.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SETTLE, [WETH.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SWEEP, [USDC.address, bob.address])
-      v4Planner.addAction(Actions.SWEEP, [WETH.address, bob.address])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_USDC.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_WETH.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_USDC.address, bob.address])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_WETH.address, bob.address])
 
       let calldata = encodeModifyLiquidities({ unlockData: v4Planner.finalize(), deadline: MAX_UINT })
 
@@ -1294,8 +1294,8 @@ describe('V3 to V4 Migration Tests:', () => {
 
       v4Planner.addAction(Actions.BURN_POSITION, [expectedTokenId, 0, 0, '0x'])
 
-      v4Planner.addAction(Actions.CLOSE_CURRENCY, [USDC.address])
-      v4Planner.addAction(Actions.CLOSE_CURRENCY, [WETH.address])
+      v4Planner.addAction(Actions.CLOSE_CURRENCY, [MAINNET_USDC.address])
+      v4Planner.addAction(Actions.CLOSE_CURRENCY, [MAINNET_WETH.address])
 
       calldata = encodeModifyLiquidities({ unlockData: v4Planner.finalize(), deadline: MAX_UINT })
 
@@ -1317,8 +1317,8 @@ describe('V3 to V4 Migration Tests:', () => {
 
       // mint the nft to bob on v3
       const tx = await v3NFTPositionManager.mint({
-        token0: USDC.address,
-        token1: WETH.address,
+        token0: MAINNET_USDC.address,
+        token1: MAINNET_WETH.address,
         fee: FeeAmount.LOW,
         tickLower: 0,
         tickUpper: 194980,
@@ -1363,10 +1363,10 @@ describe('V3 to V4 Migration Tests:', () => {
         '0x',
       ])
 
-      v4Planner.addAction(Actions.SETTLE, [USDC.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SETTLE, [WETH.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SWEEP, [USDC.address, bob.address])
-      v4Planner.addAction(Actions.SWEEP, [WETH.address, bob.address])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_USDC.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_WETH.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_USDC.address, bob.address])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_WETH.address, bob.address])
 
       let calldata = encodeModifyLiquidities({ unlockData: v4Planner.finalize(), deadline: MAX_UINT })
 
@@ -1407,10 +1407,10 @@ describe('V3 to V4 Migration Tests:', () => {
         '0x',
       ])
 
-      v4Planner.addAction(Actions.SETTLE, [USDC.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SETTLE, [WETH.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SWEEP, [USDC.address, bob.address])
-      v4Planner.addAction(Actions.SWEEP, [WETH.address, bob.address])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_USDC.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_WETH.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_USDC.address, bob.address])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_WETH.address, bob.address])
 
       let calldata = encodeModifyLiquidities({ unlockData: v4Planner.finalize(), deadline: MAX_UINT })
 
@@ -1439,8 +1439,8 @@ describe('V3 to V4 Migration Tests:', () => {
 
       // mint the nft to bob on v3
       const tx = await v3NFTPositionManager.mint({
-        token0: USDC.address,
-        token1: WETH.address,
+        token0: MAINNET_USDC.address,
+        token1: MAINNET_WETH.address,
         fee: FeeAmount.LOW,
         tickLower: 0,
         tickUpper: 194980,
@@ -1491,10 +1491,10 @@ describe('V3 to V4 Migration Tests:', () => {
       // increase params for bob's position
       v4Planner.addAction(Actions.INCREASE_LIQUIDITY, [expectedTokenId, '6000000', MAX_UINT128, MAX_UINT128, '0x'])
 
-      v4Planner.addAction(Actions.SETTLE, [USDC.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SETTLE, [WETH.address, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SWEEP, [USDC.address, bob.address])
-      v4Planner.addAction(Actions.SWEEP, [WETH.address, bob.address])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_USDC.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_WETH.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_USDC.address, bob.address])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_WETH.address, bob.address])
 
       calldata = encodeModifyLiquidities({ unlockData: v4Planner.finalize(), deadline: MAX_UINT })
 
@@ -1532,8 +1532,8 @@ describe('V3 to V4 Migration Tests:', () => {
 
       // mint the nft to bob on v3
       const tx = await v3NFTPositionManager.mint({
-        token0: USDC.address,
-        token1: WETH.address,
+        token0: MAINNET_USDC.address,
+        token1: MAINNET_WETH.address,
         fee: FeeAmount.LOW,
         tickLower: 0,
         tickUpper: 194980,
@@ -1571,7 +1571,7 @@ describe('V3 to V4 Migration Tests:', () => {
       planner.addCommand(CommandType.UNWRAP_WETH, [router.address, 0])
 
       // transfer usdc to v4 position manager
-      planner.addCommand(CommandType.TRANSFER, [USDC.address, v4PositionManager.address, CONTRACT_BALANCE])
+      planner.addCommand(CommandType.TRANSFER, [MAINNET_USDC.address, v4PositionManager.address, CONTRACT_BALANCE])
 
       v4Planner.addAction(Actions.MINT_POSITION, [
         ETH_USDC.poolKey,
@@ -1584,9 +1584,9 @@ describe('V3 to V4 Migration Tests:', () => {
         '0x',
       ])
 
-      v4Planner.addAction(Actions.SETTLE, [USDC.address, OPEN_DELTA, SOURCE_ROUTER])
+      v4Planner.addAction(Actions.SETTLE, [MAINNET_USDC.address, OPEN_DELTA, SOURCE_ROUTER])
       v4Planner.addAction(Actions.SETTLE, [ADDRESS_ZERO, OPEN_DELTA, SOURCE_ROUTER])
-      v4Planner.addAction(Actions.SWEEP, [USDC.address, bob.address])
+      v4Planner.addAction(Actions.SWEEP, [MAINNET_USDC.address, bob.address])
       v4Planner.addAction(Actions.SWEEP, [ADDRESS_ZERO, bob.address])
 
       let calldata = encodeModifyLiquidities({ unlockData: v4Planner.finalize(), deadline: MAX_UINT })

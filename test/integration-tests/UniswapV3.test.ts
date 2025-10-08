@@ -3,10 +3,10 @@ import { expect } from './shared/expect'
 import { BigNumber, BigNumberish } from 'ethers'
 import { IPermit2, UniversalRouter } from '../../typechain'
 import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
-import { resetFork, WETH, DAI, USDC, PERMIT2 } from './shared/mainnetForkHelpers'
+import { resetFork, MAINNET_WETH, MAINNET_DAI, MAINNET_USDC, PERMIT2 } from './shared/mainnetForkHelpers'
 import {
   ADDRESS_THIS,
-  ALICE_ADDRESS,
+  MAINNET_ALICE_ADDRESS,
   DEADLINE,
   MAX_UINT,
   MAX_UINT160,
@@ -43,13 +43,13 @@ describe('Uniswap V3 Tests:', () => {
     await resetFork()
     await hre.network.provider.request({
       method: 'hardhat_impersonateAccount',
-      params: [ALICE_ADDRESS],
+      params: [MAINNET_ALICE_ADDRESS],
     })
-    alice = await ethers.getSigner(ALICE_ADDRESS)
+    alice = await ethers.getSigner(MAINNET_ALICE_ADDRESS)
     bob = (await ethers.getSigners())[1]
-    daiContract = new ethers.Contract(DAI.address, TOKEN_ABI, bob)
-    wethContract = new ethers.Contract(WETH.address, TOKEN_ABI, bob)
-    usdcContract = new ethers.Contract(USDC.address, TOKEN_ABI, bob)
+    daiContract = new ethers.Contract(MAINNET_DAI.address, TOKEN_ABI, bob)
+    wethContract = new ethers.Contract(MAINNET_WETH.address, TOKEN_ABI, bob)
+    usdcContract = new ethers.Contract(MAINNET_USDC.address, TOKEN_ABI, bob)
     permit2 = PERMIT2.connect(bob) as IPermit2
     router = (await deployUniversalRouter()) as UniversalRouter
     planner = new RoutePlanner()
@@ -65,8 +65,8 @@ describe('Uniswap V3 Tests:', () => {
     await usdcContract.connect(bob).approve(permit2.address, MAX_UINT)
 
     // for these tests Bob gives the router max approval on permit2
-    await permit2.approve(DAI.address, router.address, MAX_UINT160, DEADLINE)
-    await permit2.approve(WETH.address, router.address, MAX_UINT160, DEADLINE)
+    await permit2.approve(MAINNET_DAI.address, router.address, MAX_UINT160, DEADLINE)
+    await permit2.approve(MAINNET_WETH.address, router.address, MAX_UINT160, DEADLINE)
   })
 
   const addV3ExactInTrades = (
@@ -74,12 +74,12 @@ describe('Uniswap V3 Tests:', () => {
     numTrades: BigNumberish,
     amountOutMin: BigNumberish,
     recipient?: string,
-    tokens: string[] = [DAI.address, WETH.address],
+    tokens: string[] = [MAINNET_DAI.address, MAINNET_WETH.address],
     tokenSource: boolean = SOURCE_MSG_SENDER
   ) => {
     const path = encodePathExactInput(tokens)
     for (let i = 0; i < numTrades; i++) {
-      planner.addCommand(CommandType.V3_SWAP_EXACT_IN, [
+      planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_IN, [
         recipient ?? MSG_SENDER,
         amountIn,
         amountOutMin,
@@ -94,7 +94,7 @@ describe('Uniswap V3 Tests:', () => {
 
     beforeEach(async () => {
       // cancel the permit on DAI
-      await permit2.approve(DAI.address, ADDRESS_ZERO, 0, 0)
+      await permit2.approve(MAINNET_DAI.address, ADDRESS_ZERO, 0, 0)
     })
 
     it('V3 exactIn, permiting the exact amount', async () => {
@@ -107,7 +107,7 @@ describe('Uniswap V3 Tests:', () => {
       // second bob signs a permit to allow the router to access his DAI
       permit = {
         details: {
-          token: DAI.address,
+          token: MAINNET_DAI.address,
           amount: amountInDAI,
           expiration: 0, // expiration of 0 is block.timestamp
           nonce: 0, // this is his first trade
@@ -117,11 +117,11 @@ describe('Uniswap V3 Tests:', () => {
       }
       const sig = await getPermitSignature(permit, bob, permit2)
 
-      const path = encodePathExactInput([DAI.address, WETH.address])
+      const path = encodePathExactInput([MAINNET_DAI.address, MAINNET_WETH.address])
 
       // 1) permit the router to access funds, 2) trade, which takes the funds directly from permit2
       planner.addCommand(CommandType.PERMIT2_PERMIT, [permit, sig])
-      planner.addCommand(CommandType.V3_SWAP_EXACT_IN, [
+      planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_IN, [
         MSG_SENDER,
         amountInDAI,
         minAmountOutWETH,
@@ -150,7 +150,7 @@ describe('Uniswap V3 Tests:', () => {
       // second bob signs a permit to allow the router to access his DAI
       permit = {
         details: {
-          token: DAI.address,
+          token: MAINNET_DAI.address,
           amount: maxAmountInDAI,
           expiration: 0, // expiration of 0 is block.timestamp
           nonce: 0, // this is his first trade
@@ -160,11 +160,11 @@ describe('Uniswap V3 Tests:', () => {
       }
       const sig = await getPermitSignature(permit, bob, permit2)
 
-      const path = encodePathExactOutput([DAI.address, WETH.address])
+      const path = encodePathExactOutput([MAINNET_DAI.address, MAINNET_WETH.address])
 
       // 1) permit the router to access funds, 2) trade, which takes the funds directly from permit2
       planner.addCommand(CommandType.PERMIT2_PERMIT, [permit, sig])
-      planner.addCommand(CommandType.V3_SWAP_EXACT_OUT, [
+      planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_OUT, [
         MSG_SENDER,
         amountOutWETH,
         maxAmountInDAI,
@@ -209,7 +209,7 @@ describe('Uniswap V3 Tests:', () => {
         1,
         amountOutMin,
         MSG_SENDER,
-        [DAI.address, WETH.address, USDC.address],
+        [MAINNET_DAI.address, MAINNET_WETH.address, MAINNET_USDC.address],
         SOURCE_MSG_SENDER
       )
 
@@ -229,10 +229,10 @@ describe('Uniswap V3 Tests:', () => {
 
     it('completes a V3 exactOut swap', async () => {
       // trade DAI in for WETH out
-      const tokens = [DAI.address, WETH.address]
+      const tokens = [MAINNET_DAI.address, MAINNET_WETH.address]
       const path = encodePathExactOutput(tokens)
 
-      planner.addCommand(CommandType.V3_SWAP_EXACT_OUT, [MSG_SENDER, amountOut, amountInMax, path, SOURCE_MSG_SENDER])
+      planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_OUT, [MSG_SENDER, amountOut, amountInMax, path, SOURCE_MSG_SENDER])
 
       const { wethBalanceBefore, wethBalanceAfter, v3SwapEventArgs } = await executeRouter(
         planner,
@@ -249,10 +249,10 @@ describe('Uniswap V3 Tests:', () => {
 
     it('completes a V3 exactOut swap with longer path', async () => {
       // trade DAI in for WETH out
-      const tokens = [DAI.address, USDC.address, WETH.address]
+      const tokens = [MAINNET_DAI.address, MAINNET_USDC.address, MAINNET_WETH.address]
       const path = encodePathExactOutput(tokens)
 
-      planner.addCommand(CommandType.V3_SWAP_EXACT_OUT, [MSG_SENDER, amountOut, amountInMax, path, SOURCE_MSG_SENDER])
+      planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_OUT, [MSG_SENDER, amountOut, amountInMax, path, SOURCE_MSG_SENDER])
       const { commands, inputs } = planner
 
       const balanceWethBefore = await wethContract.balanceOf(bob.address)
@@ -284,10 +284,10 @@ describe('Uniswap V3 Tests:', () => {
 
     it('completes a V3 exactOut swap', async () => {
       // trade DAI in for WETH out
-      const tokens = [DAI.address, WETH.address]
+      const tokens = [MAINNET_DAI.address, MAINNET_WETH.address]
       const path = encodePathExactOutput(tokens)
 
-      planner.addCommand(CommandType.V3_SWAP_EXACT_OUT, [ADDRESS_THIS, amountOut, amountInMax, path, SOURCE_MSG_SENDER])
+      planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_OUT, [ADDRESS_THIS, amountOut, amountInMax, path, SOURCE_MSG_SENDER])
       planner.addCommand(CommandType.UNWRAP_WETH, [MSG_SENDER, amountOut])
 
       const { ethBalanceBefore, ethBalanceAfter, gasSpent } = await executeRouter(
@@ -305,7 +305,7 @@ describe('Uniswap V3 Tests:', () => {
 
   describe('ETH --> ERC20', () => {
     it('completes a V3 exactIn swap', async () => {
-      const tokens = [WETH.address, DAI.address]
+      const tokens = [MAINNET_WETH.address, MAINNET_DAI.address]
       const amountOutMin: BigNumber = expandTo18DecimalsBN(0.0005)
 
       planner.addCommand(CommandType.WRAP_ETH, [ADDRESS_THIS, amountIn])
@@ -326,11 +326,11 @@ describe('Uniswap V3 Tests:', () => {
     })
 
     it('completes a V3 exactOut swap', async () => {
-      const tokens = [WETH.address, DAI.address]
+      const tokens = [MAINNET_WETH.address, MAINNET_DAI.address]
       const path = encodePathExactOutput(tokens)
 
       planner.addCommand(CommandType.WRAP_ETH, [ADDRESS_THIS, amountInMax])
-      planner.addCommand(CommandType.V3_SWAP_EXACT_OUT, [MSG_SENDER, amountOut, amountInMax, path, SOURCE_ROUTER])
+      planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_OUT, [MSG_SENDER, amountOut, amountInMax, path, SOURCE_ROUTER])
       planner.addCommand(CommandType.UNWRAP_WETH, [MSG_SENDER, 0])
 
       const { ethBalanceBefore, ethBalanceAfter, daiBalanceBefore, daiBalanceAfter, gasSpent, v3SwapEventArgs } =

@@ -14,12 +14,12 @@ import { SwapRouter } from '@uniswap/router-sdk'
 import {
   executeSwapRouter02Swap,
   resetFork,
-  DAI,
-  USDC,
+  MAINNET_DAI,
+  MAINNET_USDC,
   approveSwapRouter02,
   PERMIT2,
 } from '../shared/mainnetForkHelpers'
-import { ALICE_ADDRESS, DEADLINE, MAX_UINT, MAX_UINT160, SOURCE_MSG_SENDER } from '../shared/constants'
+import { MAINNET_ALICE_ADDRESS, DEADLINE, MAX_UINT, MAX_UINT160, SOURCE_MSG_SENDER } from '../shared/constants'
 import { expandTo6DecimalsBN } from '../shared/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import deployUniversalRouter from '../shared/deployUniversalRouter'
@@ -51,12 +51,12 @@ describe('Uniswap UX Tests gas:', () => {
     await resetFork()
     await hre.network.provider.request({
       method: 'hardhat_impersonateAccount',
-      params: [ALICE_ADDRESS],
+      params: [MAINNET_ALICE_ADDRESS],
     })
-    alice = await ethers.getSigner(ALICE_ADDRESS)
+    alice = await ethers.getSigner(MAINNET_ALICE_ADDRESS)
     bob = (await ethers.getSigners())[1]
 
-    usdcContract = ERC20__factory.connect(USDC.address, alice)
+    usdcContract = ERC20__factory.connect(MAINNET_USDC.address, alice)
 
     permit2 = PERMIT2.connect(alice) as IPermit2
     router = (await deployUniversalRouter()).connect(bob) as UniversalRouter
@@ -77,21 +77,21 @@ describe('Uniswap UX Tests gas:', () => {
     */
 
     const USDC_DAI_V2 = new Pair(
-      CurrencyAmount.fromRawAmount(USDC, 10000000),
-      CurrencyAmount.fromRawAmount(DAI, 10000000)
+      CurrencyAmount.fromRawAmount(MAINNET_USDC, 10000000),
+      CurrencyAmount.fromRawAmount(MAINNET_DAI, 10000000)
     )
 
-    const simpleSwapAmountInUSDC = CurrencyAmount.fromRawAmount(USDC, expandTo6DecimalsBN(1000).toString())
-    const complexSwapAmountInSplit1 = CurrencyAmount.fromRawAmount(USDC, expandTo6DecimalsBN(3000).toString())
-    const complexSwapAmountInSplit2 = CurrencyAmount.fromRawAmount(USDC, expandTo6DecimalsBN(4000).toString())
-    const complexSwapAmountInSplit3 = CurrencyAmount.fromRawAmount(USDC, expandTo6DecimalsBN(3000).toString())
+    const simpleSwapAmountInUSDC = CurrencyAmount.fromRawAmount(MAINNET_USDC, expandTo6DecimalsBN(1000).toString())
+    const complexSwapAmountInSplit1 = CurrencyAmount.fromRawAmount(MAINNET_USDC, expandTo6DecimalsBN(3000).toString())
+    const complexSwapAmountInSplit2 = CurrencyAmount.fromRawAmount(MAINNET_USDC, expandTo6DecimalsBN(4000).toString())
+    const complexSwapAmountInSplit3 = CurrencyAmount.fromRawAmount(MAINNET_USDC, expandTo6DecimalsBN(3000).toString())
 
     SIMPLE_SWAP = new Trade({
       v3Routes: [
         {
-          routev3: new V3RouteSDK([pool_USDC_WETH, pool_DAI_WETH], USDC, DAI),
+          routev3: new V3RouteSDK([pool_USDC_WETH, pool_DAI_WETH], MAINNET_USDC, MAINNET_DAI),
           inputAmount: simpleSwapAmountInUSDC,
-          outputAmount: CurrencyAmount.fromRawAmount(DAI, expandTo18Decimals(1000)),
+          outputAmount: CurrencyAmount.fromRawAmount(MAINNET_DAI, expandTo18Decimals(1000)),
         },
       ],
       v2Routes: [],
@@ -101,21 +101,21 @@ describe('Uniswap UX Tests gas:', () => {
     COMPLEX_SWAP = new Trade({
       v3Routes: [
         {
-          routev3: new V3RouteSDK([pool_USDC_WETH, pool_DAI_WETH], USDC, DAI),
+          routev3: new V3RouteSDK([pool_USDC_WETH, pool_DAI_WETH], MAINNET_USDC, MAINNET_DAI),
           inputAmount: complexSwapAmountInSplit1,
-          outputAmount: CurrencyAmount.fromRawAmount(DAI, expandTo18Decimals(3000)),
+          outputAmount: CurrencyAmount.fromRawAmount(MAINNET_DAI, expandTo18Decimals(3000)),
         },
         {
-          routev3: new V3RouteSDK([pool_USDC_USDT, pool_DAI_USDT], USDC, DAI),
+          routev3: new V3RouteSDK([pool_USDC_USDT, pool_DAI_USDT], MAINNET_USDC, MAINNET_DAI),
           inputAmount: complexSwapAmountInSplit2,
-          outputAmount: CurrencyAmount.fromRawAmount(DAI, expandTo18Decimals(4000)),
+          outputAmount: CurrencyAmount.fromRawAmount(MAINNET_DAI, expandTo18Decimals(4000)),
         },
       ],
       v2Routes: [
         {
-          routev2: new V2RouteSDK([USDC_DAI_V2], USDC, DAI),
+          routev2: new V2RouteSDK([USDC_DAI_V2], MAINNET_USDC, MAINNET_DAI),
           inputAmount: complexSwapAmountInSplit3,
-          outputAmount: CurrencyAmount.fromRawAmount(DAI, expandTo18Decimals(3000)),
+          outputAmount: CurrencyAmount.fromRawAmount(MAINNET_DAI, expandTo18Decimals(3000)),
         },
       ],
 
@@ -171,7 +171,7 @@ describe('Uniswap UX Tests gas:', () => {
         planner.addCommand(CommandType.V2_SWAP_EXACT_IN, [bob.address, amountIn, 0, pathAddresses, SOURCE_MSG_SENDER])
       } else if (swap.route.protocol == 'V3') {
         let path = encodePathExactInput(route)
-        planner.addCommand(CommandType.V3_SWAP_EXACT_IN, [bob.address, amountIn, 0, path, SOURCE_MSG_SENDER])
+        planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_IN, [bob.address, amountIn, 0, path, SOURCE_MSG_SENDER])
       } else {
         console.log('invalid protocol')
       }
@@ -201,7 +201,7 @@ describe('Uniswap UX Tests gas:', () => {
       const receipt = await permitApprovalTx.wait()
       approvePermit2Gas = receipt.gasUsed
 
-      const swapRouter02ApprovalTx = (await approveSwapRouter02(bob, USDC))!
+      const swapRouter02ApprovalTx = (await approveSwapRouter02(bob, MAINNET_USDC))!
       approveSwapRouter02Gas = swapRouter02ApprovalTx.gasUsed
     })
 
@@ -467,7 +467,7 @@ describe('Uniswap UX Tests gas:', () => {
 
         // Launch SwapRouter03
         const router2 = (await deployUniversalRouter()).connect(bob) as UniversalRouter
-        const router2ApprovalTx = (await approveSwapRouter02(bob, USDC, router2.address))!
+        const router2ApprovalTx = (await approveSwapRouter02(bob, MAINNET_USDC, router2.address))!
         totalGas = totalGas.add(router2ApprovalTx.gasUsed)
 
         // Do 5 simple swaps on SwapRouter03
@@ -478,7 +478,7 @@ describe('Uniswap UX Tests gas:', () => {
 
         // Launch SwapRouter04
         const router3 = (await deployUniversalRouter()).connect(bob) as UniversalRouter
-        const router3ApprovalTx = (await approveSwapRouter02(bob, USDC, router3.address))!
+        const router3ApprovalTx = (await approveSwapRouter02(bob, MAINNET_USDC, router3.address))!
         totalGas = totalGas.add(router3ApprovalTx.gasUsed)
 
         // Do 5 simple swaps on SwapRouter04

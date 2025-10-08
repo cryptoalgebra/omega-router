@@ -1,23 +1,21 @@
 import { UniversalRouter, ERC20, IWETH, IPermit2 } from '../../typechain'
-import { Pair } from '@uniswap/v2-sdk'
 import { expect } from './shared/expect'
 import { abi as ROUTER_ABI } from '../../artifacts/contracts/UniversalRouter.sol/UniversalRouter.json'
 import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
-import { abi as WETH_ABI } from '../../artifacts/@uniswap/v4-periphery/src/interfaces/external/IWETH.sol/IWETH.json'
+import { abi as WETH_ABI } from '../../artifacts/contracts/interfaces/IWETH.sol/IWETH.json'
 
 import deployUniversalRouter from './shared/deployUniversalRouter'
 import {
   ADDRESS_THIS,
-  ALICE_ADDRESS,
+  MAINNET_ALICE_ADDRESS,
   DEADLINE,
   SOURCE_MSG_SENDER,
   MAX_UINT160,
   MAX_UINT,
   ETH_ADDRESS,
 } from './shared/constants'
-import { resetFork, WETH, DAI, PERMIT2 } from './shared/mainnetForkHelpers'
+import { resetFork, MAINNET_WETH, MAINNET_DAI, PERMIT2 } from './shared/mainnetForkHelpers'
 import { CommandType, RoutePlanner } from './shared/planner'
-import { makePair } from './shared/swapRouter02Helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expandTo18DecimalsBN } from './shared/helpers'
 import hre from 'hardhat'
@@ -31,19 +29,17 @@ describe('UniversalRouter', () => {
   let permit2: IPermit2
   let daiContract: ERC20
   let wethContract: IWETH
-  let pair_DAI_WETH: Pair
 
   beforeEach(async () => {
     await resetFork()
-    alice = await ethers.getSigner(ALICE_ADDRESS)
+    alice = await ethers.getSigner(MAINNET_ALICE_ADDRESS)
     await hre.network.provider.request({
       method: 'hardhat_impersonateAccount',
-      params: [ALICE_ADDRESS],
+      params: [MAINNET_ALICE_ADDRESS],
     })
 
-    daiContract = new ethers.Contract(DAI.address, TOKEN_ABI, alice) as ERC20
-    wethContract = new ethers.Contract(WETH.address, WETH_ABI, alice) as IWETH
-    pair_DAI_WETH = await makePair(alice, DAI, WETH)
+    daiContract = new ethers.Contract(MAINNET_DAI.address, TOKEN_ABI, alice) as ERC20
+    wethContract = new ethers.Contract(MAINNET_WETH.address, WETH_ABI, alice) as IWETH
     permit2 = PERMIT2.connect(alice) as IPermit2
     router = (await deployUniversalRouter()).connect(alice) as UniversalRouter
   })
@@ -56,8 +52,8 @@ describe('UniversalRouter', () => {
       planner = new RoutePlanner()
       await daiContract.approve(permit2.address, MAX_UINT)
       await wethContract.approve(permit2.address, MAX_UINT)
-      await permit2.approve(DAI.address, router.address, MAX_UINT160, DEADLINE)
-      await permit2.approve(WETH.address, router.address, MAX_UINT160, DEADLINE)
+      await permit2.approve(MAINNET_DAI.address, router.address, MAX_UINT160, DEADLINE)
+      await permit2.approve(MAINNET_WETH.address, router.address, MAX_UINT160, DEADLINE)
     })
 
     it('reverts if block.timestamp exceeds the deadline', async () => {
@@ -65,7 +61,7 @@ describe('UniversalRouter', () => {
         alice.address,
         1,
         1,
-        [DAI.address, WETH.address],
+        [MAINNET_DAI.address, MAINNET_WETH.address],
         SOURCE_MSG_SENDER,
       ])
       const invalidDeadline = 10
@@ -87,8 +83,8 @@ describe('UniversalRouter', () => {
 
     it('reverts for an invalid command at index 1', async () => {
       planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [
-        DAI.address,
-        pair_DAI_WETH.liquidityToken.address,
+        MAINNET_DAI.address,
+        MAINNET_WETH.address,
         expandTo18DecimalsBN(1),
       ])
       let commands = planner.commands
@@ -104,8 +100,8 @@ describe('UniversalRouter', () => {
 
     it('reverts if paying a portion over 100% of contract balance', async () => {
       await daiContract.transfer(router.address, expandTo18DecimalsBN(1))
-      planner.addCommand(CommandType.PAY_PORTION, [WETH.address, alice.address, 11_000])
-      planner.addCommand(CommandType.SWEEP, [WETH.address, alice.address, 1])
+      planner.addCommand(CommandType.PAY_PORTION, [MAINNET_WETH.address, alice.address, 11_000])
+      planner.addCommand(CommandType.SWEEP, [MAINNET_WETH.address, alice.address, 1])
       const { commands, inputs } = planner
       await expect(router['execute(bytes,bytes[])'](commands, inputs)).to.be.revertedWithCustomError(
         router,

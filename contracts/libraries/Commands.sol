@@ -32,8 +32,8 @@ library Commands {
     // COMMAND_PLACEHOLDER = 0x0f;
 
     // Command Types where 0x10<=value<=0x20, executed in the third nested-if block
-    uint256 constant V4_SWAP = 0x10;
-    uint256 constant V3_POSITION_MANAGER_PERMIT = 0x11;
+    uint256 constant UNISWAP_V3_SWAP_EXACT_IN = 0x10;
+    uint256 constant UNISWAP_V3_SWAP_EXACT_OUT = 0x11;
     uint256 constant V3_POSITION_MANAGER_CALL = 0x12;
     uint256 constant V4_INITIALIZE_POOL = 0x13;
     uint256 constant V4_POSITION_MANAGER_CALL = 0x14;

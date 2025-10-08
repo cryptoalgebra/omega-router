@@ -4,10 +4,10 @@ import { expect } from './shared/expect'
 import { BigNumber } from 'ethers'
 import { IPermit2, UniversalRouter } from '../../typechain'
 import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
-import { resetFork, WETH, DAI, USDC, PERMIT2 } from './shared/mainnetForkHelpers'
+import { resetFork, MAINNET_WETH, MAINNET_DAI, MAINNET_USDC, PERMIT2 } from './shared/mainnetForkHelpers'
 import {
   ADDRESS_THIS,
-  ALICE_ADDRESS,
+  MAINNET_ALICE_ADDRESS,
   DEADLINE,
   ETH_ADDRESS,
   MAX_UINT,
@@ -43,13 +43,13 @@ describe('Uniswap V2 Tests:', () => {
     await resetFork()
     await hre.network.provider.request({
       method: 'hardhat_impersonateAccount',
-      params: [ALICE_ADDRESS],
+      params: [MAINNET_ALICE_ADDRESS],
     })
-    alice = await ethers.getSigner(ALICE_ADDRESS)
+    alice = await ethers.getSigner(MAINNET_ALICE_ADDRESS)
     bob = (await ethers.getSigners())[1]
-    daiContract = new ethers.Contract(DAI.address, TOKEN_ABI, bob)
-    wethContract = new ethers.Contract(WETH.address, TOKEN_ABI, bob)
-    usdcContract = new ethers.Contract(USDC.address, TOKEN_ABI, bob)
+    daiContract = new ethers.Contract(MAINNET_DAI.address, TOKEN_ABI, bob)
+    wethContract = new ethers.Contract(MAINNET_WETH.address, TOKEN_ABI, bob)
+    usdcContract = new ethers.Contract(MAINNET_USDC.address, TOKEN_ABI, bob)
     permit2 = PERMIT2.connect(bob) as IPermit2
     router = (await deployUniversalRouter()) as UniversalRouter
     planner = new RoutePlanner()
@@ -65,8 +65,8 @@ describe('Uniswap V2 Tests:', () => {
     await usdcContract.connect(bob).approve(permit2.address, MAX_UINT)
 
     // for these tests Bob gives the router max approval on permit2
-    await permit2.approve(DAI.address, router.address, MAX_UINT160, DEADLINE)
-    await permit2.approve(WETH.address, router.address, MAX_UINT160, DEADLINE)
+    await permit2.approve(MAINNET_DAI.address, router.address, MAX_UINT160, DEADLINE)
+    await permit2.approve(MAINNET_WETH.address, router.address, MAX_UINT160, DEADLINE)
   })
 
   describe('Trade on Uniswap with Permit2, giving approval every time', () => {
@@ -74,7 +74,7 @@ describe('Uniswap V2 Tests:', () => {
 
     beforeEach(async () => {
       // cancel the permit on DAI
-      await permit2.approve(DAI.address, router.address, 0, 0)
+      await permit2.approve(MAINNET_DAI.address, router.address, 0, 0)
     })
 
     it('Permit2 can silently fail', async () => {
@@ -83,7 +83,7 @@ describe('Uniswap V2 Tests:', () => {
       // bob signs a permit to allow the router to access his DAI
       permit = {
         details: {
-          token: DAI.address,
+          token: MAINNET_DAI.address,
           amount: amountInDAI,
           expiration: 0, // expiration of 0 is block.timestamp
           nonce: 0, // this is his first trade
@@ -99,12 +99,12 @@ describe('Uniswap V2 Tests:', () => {
       // 2) permit the router to access funds again, allowing revert
       planner.addCommand(CommandType.PERMIT2_PERMIT, [permit, sig], true)
 
-      let nonce = (await permit2.allowance(bob.address, DAI.address, router.address)).nonce
+      let nonce = (await permit2.allowance(bob.address, MAINNET_DAI.address, router.address)).nonce
       expect(nonce).to.eq(0)
 
       await executeRouter(planner, bob, router, wethContract, daiContract, usdcContract)
 
-      nonce = (await permit2.allowance(bob.address, DAI.address, router.address)).nonce
+      nonce = (await permit2.allowance(bob.address, MAINNET_DAI.address, router.address)).nonce
       expect(nonce).to.eq(1)
     })
 
@@ -115,7 +115,7 @@ describe('Uniswap V2 Tests:', () => {
       // second bob signs a permit to allow the router to access his DAI
       permit = {
         details: {
-          token: DAI.address,
+          token: MAINNET_DAI.address,
           amount: amountInDAI,
           expiration: 0, // expiration of 0 is block.timestamp
           nonce: 0, // this is his first trade
@@ -131,7 +131,7 @@ describe('Uniswap V2 Tests:', () => {
         MSG_SENDER,
         amountInDAI,
         minAmountOutWETH,
-        [DAI.address, WETH.address],
+        [MAINNET_DAI.address, MAINNET_WETH.address],
         SOURCE_MSG_SENDER,
       ])
       const { wethBalanceBefore, wethBalanceAfter, daiBalanceAfter, daiBalanceBefore } = await executeRouter(
@@ -153,7 +153,7 @@ describe('Uniswap V2 Tests:', () => {
       // second bob signs a permit to allow the router to access his DAI
       permit = {
         details: {
-          token: DAI.address,
+          token: MAINNET_DAI.address,
           amount: maxAmountInDAI,
           expiration: 0, // expiration of 0 is block.timestamp
           nonce: 0, // this is his first trade
@@ -169,7 +169,7 @@ describe('Uniswap V2 Tests:', () => {
         MSG_SENDER,
         amountOutWETH,
         maxAmountInDAI,
-        [DAI.address, WETH.address],
+        [MAINNET_DAI.address, MAINNET_WETH.address],
         SOURCE_MSG_SENDER,
       ])
       const { wethBalanceBefore, wethBalanceAfter, daiBalanceAfter, daiBalanceBefore } = await executeRouter(
@@ -191,7 +191,7 @@ describe('Uniswap V2 Tests:', () => {
       // second bob signs a permit to allow the router to access his DAI
       permit = {
         details: {
-          token: DAI.address,
+          token: MAINNET_DAI.address,
           amount: max_uint,
           expiration: 0, // expiration of 0 is block.timestamp
           nonce: 0, // this is his first trade
@@ -207,7 +207,7 @@ describe('Uniswap V2 Tests:', () => {
         MSG_SENDER,
         BigNumber.from(MAX_UINT160).add(1),
         minAmountOutWETH,
-        [DAI.address, WETH.address],
+        [MAINNET_DAI.address, MAINNET_WETH.address],
         SOURCE_MSG_SENDER,
       ])
 
@@ -225,7 +225,7 @@ describe('Uniswap V2 Tests:', () => {
         MSG_SENDER,
         amountIn,
         minAmountOut,
-        [DAI.address, WETH.address],
+        [MAINNET_DAI.address, MAINNET_WETH.address],
         SOURCE_MSG_SENDER,
       ])
       const { wethBalanceBefore, wethBalanceAfter } = await executeRouter(
@@ -245,10 +245,10 @@ describe('Uniswap V2 Tests:', () => {
         MSG_SENDER,
         amountOut,
         expandTo18DecimalsBN(10000),
-        [WETH.address, DAI.address],
+        [MAINNET_WETH.address, MAINNET_DAI.address],
         SOURCE_MSG_SENDER,
       ])
-      planner.addCommand(CommandType.SWEEP, [WETH.address, MSG_SENDER, 0])
+      planner.addCommand(CommandType.SWEEP, [MAINNET_WETH.address, MSG_SENDER, 0])
       const { daiBalanceBefore, daiBalanceAfter } = await executeRouter(
         planner,
         bob,
@@ -266,11 +266,11 @@ describe('Uniswap V2 Tests:', () => {
         ADDRESS_THIS,
         amountIn,
         1,
-        [DAI.address, WETH.address],
+        [MAINNET_DAI.address, MAINNET_WETH.address],
         SOURCE_MSG_SENDER,
       ])
-      planner.addCommand(CommandType.PAY_PORTION, [WETH.address, alice.address, ONE_PERCENT_BIPS])
-      planner.addCommand(CommandType.SWEEP, [WETH.address, MSG_SENDER, 1])
+      planner.addCommand(CommandType.PAY_PORTION, [MAINNET_WETH.address, alice.address, ONE_PERCENT_BIPS])
+      planner.addCommand(CommandType.SWEEP, [MAINNET_WETH.address, MSG_SENDER, 1])
 
       const { commands, inputs } = planner
       const wethBalanceBeforeAlice = await wethContract.balanceOf(alice.address)
@@ -297,7 +297,7 @@ describe('Uniswap V2 Tests:', () => {
         MSG_SENDER,
         amountIn,
         minAmountOut,
-        [DAI.address, USDC.address, WETH.address],
+        [MAINNET_DAI.address, MAINNET_USDC.address, MAINNET_WETH.address],
         SOURCE_MSG_SENDER,
       ])
 
@@ -319,7 +319,7 @@ describe('Uniswap V2 Tests:', () => {
         ADDRESS_THIS,
         amountIn,
         1,
-        [DAI.address, WETH.address],
+        [MAINNET_DAI.address, MAINNET_WETH.address],
         SOURCE_MSG_SENDER,
       ])
       planner.addCommand(CommandType.UNWRAP_WETH, [MSG_SENDER, 0])
@@ -343,11 +343,11 @@ describe('Uniswap V2 Tests:', () => {
         ADDRESS_THIS,
         amountOut,
         expandTo18DecimalsBN(10000),
-        [DAI.address, WETH.address],
+        [MAINNET_DAI.address, MAINNET_WETH.address],
         SOURCE_MSG_SENDER,
       ])
       planner.addCommand(CommandType.UNWRAP_WETH, [MSG_SENDER, amountOut])
-      planner.addCommand(CommandType.SWEEP, [DAI.address, MSG_SENDER, 0])
+      planner.addCommand(CommandType.SWEEP, [MAINNET_DAI.address, MSG_SENDER, 0])
 
       const { gasSpent, ethBalanceBefore, ethBalanceAfter, v2SwapEventArgs } = await executeRouter(
         planner,
@@ -371,7 +371,7 @@ describe('Uniswap V2 Tests:', () => {
         ADDRESS_THIS,
         amountOut,
         expandTo18DecimalsBN(10000),
-        [DAI.address, WETH.address],
+        [MAINNET_DAI.address, MAINNET_WETH.address],
         SOURCE_MSG_SENDER,
       ])
       planner.addCommand(CommandType.UNWRAP_WETH, [ADDRESS_THIS, amountOut])
@@ -389,14 +389,14 @@ describe('Uniswap V2 Tests:', () => {
   describe('ETH --> ERC20', () => {
     it('completes a V2 exactIn swap', async () => {
       const minAmountOut = expandTo18DecimalsBN(0.001)
-      const pairAddress = Pair.getAddress(DAI, WETH)
+      const pairAddress = Pair.getAddress(MAINNET_DAI, MAINNET_WETH)
       planner.addCommand(CommandType.WRAP_ETH, [pairAddress, amountIn])
       // amountIn of 0 because the weth is already in the pair
       planner.addCommand(CommandType.V2_SWAP_EXACT_IN, [
         MSG_SENDER,
         0,
         minAmountOut,
-        [WETH.address, DAI.address],
+        [MAINNET_WETH.address, MAINNET_DAI.address],
         SOURCE_MSG_SENDER,
       ])
 
@@ -424,7 +424,7 @@ describe('Uniswap V2 Tests:', () => {
         MSG_SENDER,
         amountOut,
         expandTo18DecimalsBN(1),
-        [WETH.address, DAI.address],
+        [MAINNET_WETH.address, MAINNET_DAI.address],
         SOURCE_ROUTER,
       ])
       planner.addCommand(CommandType.UNWRAP_WETH, [MSG_SENDER, 0])

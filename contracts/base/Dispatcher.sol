@@ -53,7 +53,7 @@ abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter
         // 0x00 <= command < 0x21
         if (command < Commands.EXECUTE_SUB_PLAN) {
             // 0x00 <= command < 0x10
-            if (command < Commands.V4_SWAP) {
+            if (command < Commands.UNISWAP_V3_SWAP_EXACT_IN) {
                 // 0x00 <= command < 0x08
                 if (command < Commands.V2_SWAP_EXACT_IN) {
                     if (command == Commands.INTEGRAL_SWAP_EXACT_IN) {
@@ -153,39 +153,6 @@ abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter
                         revert InvalidCommandType(command);
                     }
                 } else {
-                    // 0x08 <= command < 0x10
-//                    if (command == Commands.V2_SWAP_EXACT_IN) {
-//                        // equivalent: abi.decode(inputs, (address, uint256, uint256, bytes, bool))
-//                        address recipient;
-//                        uint256 amountIn;
-//                        uint256 amountOutMin;
-//                        bool payerIsUser;
-//                        assembly {
-//                            recipient := calldataload(inputs.offset)
-//                            amountIn := calldataload(add(inputs.offset, 0x20))
-//                            amountOutMin := calldataload(add(inputs.offset, 0x40))
-//                            // 0x60 offset is the path, decoded below
-//                            payerIsUser := calldataload(add(inputs.offset, 0x80))
-//                        }
-//                        address[] calldata path = inputs.toAddressArray(3);
-//                        address payer = payerIsUser ? msgSender() : address(this);
-//                        v2SwapExactInput(map(recipient), amountIn, amountOutMin, path, payer);
-//                    } else if (command == Commands.V2_SWAP_EXACT_OUT) {
-//                        // equivalent: abi.decode(inputs, (address, uint256, uint256, bytes, bool))
-//                        address recipient;
-//                        uint256 amountOut;
-//                        uint256 amountInMax;
-//                        bool payerIsUser;
-//                        assembly {
-//                            recipient := calldataload(inputs.offset)
-//                            amountOut := calldataload(add(inputs.offset, 0x20))
-//                            amountInMax := calldataload(add(inputs.offset, 0x40))
-//                            // 0x60 offset is the path, decoded below
-//                            payerIsUser := calldataload(add(inputs.offset, 0x80))
-//                        }
-//                        address[] calldata path = inputs.toAddressArray(3);
-//                        address payer = payerIsUser ? msgSender() : address(this);
-//                        v2SwapExactOutput(map(recipient), amountOut, amountInMax, path, payer);
                     if (command == Commands.PERMIT2_PERMIT) {
                         // equivalent: abi.decode(inputs, (IAllowanceTransfer.PermitSingle, bytes))
                         IAllowanceTransfer.PermitSingle calldata permitSingle;
@@ -246,43 +213,47 @@ abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter
                 }
             } else {
                 // 0x10 <= command < 0x21
-//                if (command == Commands.V4_SWAP) {
-//                    // pass the calldata provided to V4SwapRouter._executeActions (defined in BaseActionsRouter)
-//                    _executeActions(inputs);
-//                    // This contract MUST be approved to spend the token since its going to be doing the call on the position manager
-//                if (command == Commands.V3_POSITION_MANAGER_PERMIT) {
-//                    _checkV3PermitCall(inputs);
-//                    (success, output) = address(V3_POSITION_MANAGER).call(inputs);
-//                } else if (command == Commands.V3_POSITION_MANAGER_CALL) {
-//                    _checkV3PositionManagerCall(inputs, msgSender());
-//                    (success, output) = address(V3_POSITION_MANAGER).call(inputs);
-////                } else if (command == Commands.V4_INITIALIZE_POOL) {
-////                    PoolKey calldata poolKey;
-////                    uint160 sqrtPriceX96;
-////                    assembly {
-////                        poolKey := inputs.offset
-////                        sqrtPriceX96 := calldataload(add(inputs.offset, 0xa0))
-////                    }
-////                    (success, output) =
-////                        address(poolManager).call(abi.encodeCall(IPoolManager.initialize, (poolKey, sqrtPriceX96)));
-////                } else if (command == Commands.V4_POSITION_MANAGER_CALL) {
-////                    // should only call modifyLiquidities() to mint
-////                    _checkV4PositionManagerCall(inputs);
-////                    (success, output) = address(V4_POSITION_MANAGER).call{value: address(this).balance}(inputs);
-//                } else {
+                if (command == Commands.UNISWAP_V3_SWAP_EXACT_IN) {
+                    // equivalent: abi.decode(inputs, (address, uint256, uint256, bytes, bool))
+                    address recipient;
+                    uint256 amountIn;
+                    uint256 amountOutMin;
+                    bool payerIsUser;
+                    assembly {
+                        recipient := calldataload(inputs.offset)
+                        amountIn := calldataload(add(inputs.offset, 0x20))
+                        amountOutMin := calldataload(add(inputs.offset, 0x40))
+                        // 0x60 offset is the path, decoded below
+                        payerIsUser := calldataload(add(inputs.offset, 0x80))
+                    }
+                    bytes calldata path = inputs.toBytes(3);
+                    address payer = payerIsUser ? msgSender() : address(this);
+                    v3SwapExactInput(map(recipient), amountIn, amountOutMin, path, payer);
+                }
+                else if (command == Commands.UNISWAP_V3_SWAP_EXACT_OUT) {
+                    // equivalent: abi.decode(inputs, (address, uint256, uint256, bytes, bool))
+                    address recipient;
+                    uint256 amountOut;
+                    uint256 amountInMax;
+                    bool payerIsUser;
+                    assembly {
+                        recipient := calldataload(inputs.offset)
+                        amountOut := calldataload(add(inputs.offset, 0x20))
+                        amountInMax := calldataload(add(inputs.offset, 0x40))
+                        // 0x60 offset is the path, decoded below
+                        payerIsUser := calldataload(add(inputs.offset, 0x80))
+                    }
+                    bytes calldata path = inputs.toBytes(3);
+                    address payer = payerIsUser ? msgSender() : address(this);
+                    v3SwapExactOutput(map(recipient), amountOut, amountInMax, path, payer);
+                }
+                else {
                     // placeholder area for commands 0x15-0x20
                     revert InvalidCommandType(command);
-                //}
+                }
             }
         } else {
-            // 0x21 <= command
-//            if (command == Commands.EXECUTE_SUB_PLAN) {
-//                (bytes calldata _commands, bytes[] calldata _inputs) = inputs.decodeCommandsAndInputs();
-//                (success, output) = (address(this)).call(abi.encodeCall(Dispatcher.execute, (_commands, _inputs)));
-//            } else {
-//                // placeholder area for commands 0x22-0x3f
-                revert InvalidCommandType(command);
-//            }
+            revert InvalidCommandType(command);
         }
     }
 

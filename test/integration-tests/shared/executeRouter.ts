@@ -1,6 +1,6 @@
 import type { Contract } from '@ethersproject/contracts'
 import { TransactionReceipt } from '@ethersproject/abstract-provider'
-import { parseEvents, V3_EVENTS } from './parseEvents'
+import {ALGEBRA_INTEGRAL_EVENTS, parseEvents, UNISWAP_V3_EVENTS} from './parseEvents'
 import { BigNumber, BigNumberish } from 'ethers'
 import { UniversalRouter } from '../../../typechain'
 import { DEADLINE } from './constants'
@@ -28,6 +28,11 @@ type ExecutionParams = {
   gasSpent: BigNumber
 }
 
+export enum DEX {
+  UNI_V3,
+  ALGEBRA_INTEGRAL
+}
+
 export async function executeRouter(
   planner: RoutePlanner,
   caller: SignerWithAddress,
@@ -35,7 +40,8 @@ export async function executeRouter(
   wethContract: Contract,
   daiContract: Contract,
   usdcContract: Contract,
-  value?: BigNumberish
+  value?: BigNumberish,
+  dex?: DEX
 ): Promise<ExecutionParams> {
   const ethBalanceBefore: BigNumber = await ethers.provider.getBalance(caller.address)
   const wethBalanceBefore: BigNumber = await wethContract.balanceOf(caller.address)
@@ -48,7 +54,16 @@ export async function executeRouter(
     await router.connect(caller)['execute(bytes,bytes[],uint256)'](commands, inputs, DEADLINE, { value })
   ).wait()
   const gasSpent = receipt.gasUsed.mul(receipt.effectiveGasPrice)
-  const v3SwapEventArgs = parseEvents(V3_EVENTS, receipt)[0]?.args as unknown as V3SwapEventArgs
+
+  const v3SwapEventArgs = (() => {
+    switch (dex) {
+      case DEX.ALGEBRA_INTEGRAL:
+        return parseEvents(ALGEBRA_INTEGRAL_EVENTS, receipt)[0]?.args as unknown as V3SwapEventArgs
+      default:
+        return parseEvents(UNISWAP_V3_EVENTS, receipt)[0]?.args as unknown as V3SwapEventArgs
+    }
+  })()
+
 
   const ethBalanceAfter: BigNumber = await ethers.provider.getBalance(caller.address)
   const wethBalanceAfter: BigNumber = await wethContract.balanceOf(caller.address)

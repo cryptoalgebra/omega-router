@@ -6,8 +6,8 @@ import { defaultAbiCoder } from 'ethers/lib/utils'
  * @enum {number}
  */
 export enum CommandType {
-  V3_SWAP_EXACT_IN = 0x00,
-  V3_SWAP_EXACT_OUT = 0x01,
+  INTEGRAL_SWAP_EXACT_IN = 0x00,
+  INTEGRAL_SWAP_EXACT_OUT = 0x01,
   PERMIT2_TRANSFER_FROM = 0x02,
   PERMIT2_PERMIT_BATCH = 0x03,
   SWEEP = 0x04,
@@ -22,8 +22,8 @@ export enum CommandType {
   PERMIT2_TRANSFER_FROM_BATCH = 0x0d,
   BALANCE_CHECK_ERC20 = 0x0e,
 
-  V4_SWAP = 0x10,
-  V3_POSITION_MANAGER_PERMIT = 0x11,
+  UNISWAP_V3_SWAP_EXACT_IN = 0x10,
+  UNISWAP_V3_SWAP_EXACT_OUT = 0x11,
   V3_POSITION_MANAGER_CALL = 0x12,
   V4_INITIALIZE_POOL = 0x13,
   V4_POSITION_MANAGER_CALL = 0x14,
@@ -61,8 +61,8 @@ const ABI_DEFINITION: { [key in CommandType]: string[] } = {
   [CommandType.PERMIT2_TRANSFER_FROM_BATCH]: [PERMIT2_TRANSFER_FROM_BATCH_STRUCT],
 
   // Uniswap Actions
-  [CommandType.V3_SWAP_EXACT_IN]: ['address', 'uint256', 'uint256', 'bytes', 'bool'],
-  [CommandType.V3_SWAP_EXACT_OUT]: ['address', 'uint256', 'uint256', 'bytes', 'bool'],
+  [CommandType.INTEGRAL_SWAP_EXACT_IN]: ['address', 'uint256', 'uint256', 'bytes', 'bool'],
+  [CommandType.INTEGRAL_SWAP_EXACT_OUT]: ['address', 'uint256', 'uint256', 'bytes', 'bool'],
   [CommandType.V2_SWAP_EXACT_IN]: ['address', 'uint256', 'uint256', 'address[]', 'bool'],
   [CommandType.V2_SWAP_EXACT_OUT]: ['address', 'uint256', 'uint256', 'address[]', 'bool'],
 
@@ -74,8 +74,8 @@ const ABI_DEFINITION: { [key in CommandType]: string[] } = {
   [CommandType.PAY_PORTION]: ['address', 'address', 'uint256'],
   [CommandType.BALANCE_CHECK_ERC20]: ['address', 'address', 'uint256'],
 
-  [CommandType.V4_SWAP]: ['bytes', 'bytes[]'],
-  [CommandType.V3_POSITION_MANAGER_PERMIT]: ['bytes'],
+  [CommandType.UNISWAP_V3_SWAP_EXACT_IN]: ['address', 'uint256', 'uint256', 'bytes', 'bool'],
+  [CommandType.UNISWAP_V3_SWAP_EXACT_OUT]: ['address', 'uint256', 'uint256', 'bytes', 'bool'],
   [CommandType.V3_POSITION_MANAGER_CALL]: ['bytes'],
   [CommandType.V4_INITIALIZE_POOL]: [POOL_KEY_STRUCT, 'uint160'],
   [CommandType.V4_POSITION_MANAGER_CALL]: ['bytes'],
@@ -116,7 +116,6 @@ export type RouterCommand = {
 export function createCommand(type: CommandType, parameters: any[]): RouterCommand {
   if (
     type === CommandType.V3_POSITION_MANAGER_CALL ||
-    type === CommandType.V3_POSITION_MANAGER_PERMIT ||
     type === CommandType.V4_POSITION_MANAGER_CALL
   ) {
     return { type, encodedInput: parameters[0] }

@@ -3,7 +3,11 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider'
 import hre from 'hardhat'
 const { ethers } = hre
 
-export const V3_EVENTS = new Interface([
+export const UNISWAP_V3_EVENTS = new Interface([
+  'event Swap( address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 price, uint128 liquidity, int24 tick)',
+])
+
+export const ALGEBRA_INTEGRAL_EVENTS = new Interface([
   'event Swap( address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 price, uint128 liquidity, int24 tick, uint24 overrideFee, uint24 pluginFee)',
 ])
 

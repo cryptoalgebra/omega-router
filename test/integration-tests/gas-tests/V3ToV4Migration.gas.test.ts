@@ -4,9 +4,9 @@ import deployUniversalRouter from '../shared/deployUniversalRouter'
 import { BigNumber } from 'ethers'
 import { UniversalRouter, INonfungiblePositionManager, PositionManager } from '../../../typechain'
 import { abi as TOKEN_ABI } from '../../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
-import { resetFork, WETH, DAI, USDC, INTEGRAL_NFT_POSITION_MANAGER } from '../shared/mainnetForkHelpers'
+import { resetFork, MAINNET_WETH, MAINNET_DAI, MAINNET_USDC, INTEGRAL_NFT_POSITION_MANAGER } from '../shared/mainnetForkHelpers'
 import {
-  ALICE_ADDRESS,
+  MAINNET_ALICE_ADDRESS,
   DEADLINE,
   MAX_UINT,
   MAX_UINT128,
@@ -51,13 +51,13 @@ describe('V3 to V4 Migration Gas Tests', () => {
     await resetFork()
     await hre.network.provider.request({
       method: 'hardhat_impersonateAccount',
-      params: [ALICE_ADDRESS],
+      params: [MAINNET_ALICE_ADDRESS],
     })
-    alice = await ethers.getSigner(ALICE_ADDRESS)
+    alice = await ethers.getSigner(MAINNET_ALICE_ADDRESS)
     bob = (await ethers.getSigners())[1]
-    daiContract = new ethers.Contract(DAI.address, TOKEN_ABI, bob)
-    wethContract = new ethers.Contract(WETH.address, TOKEN_ABI, bob)
-    usdcContract = new ethers.Contract(USDC.address, TOKEN_ABI, bob)
+    daiContract = new ethers.Contract(MAINNET_DAI.address, TOKEN_ABI, bob)
+    wethContract = new ethers.Contract(MAINNET_WETH.address, TOKEN_ABI, bob)
+    usdcContract = new ethers.Contract(MAINNET_USDC.address, TOKEN_ABI, bob)
     v3NFTPositionManager = INTEGRAL_NFT_POSITION_MANAGER.connect(bob) as INonfungiblePositionManager
     router = (await deployUniversalRouter()).connect(bob) as UniversalRouter
     v4PositionManagerAddress = await router.V4_POSITION_MANAGER()
@@ -79,8 +79,8 @@ describe('V3 to V4 Migration Gas Tests', () => {
 
       // need to mint the nft to bob
       const tx = await v3NFTPositionManager.mint({
-        token0: USDC.address,
-        token1: WETH.address,
+        token0: MAINNET_USDC.address,
+        token1: MAINNET_WETH.address,
         fee: FeeAmount.LOW,
         tickLower: 0,
         tickUpper: 194980,
@@ -283,10 +283,10 @@ describe('V3 to V4 Migration Gas Tests', () => {
           '0x',
         ])
 
-        v4Planner.addAction(Actions.SETTLE, [USDC.address, OPEN_DELTA, SOURCE_ROUTER])
-        v4Planner.addAction(Actions.SETTLE, [WETH.address, OPEN_DELTA, SOURCE_ROUTER])
-        v4Planner.addAction(Actions.SWEEP, [USDC.address, bob.address])
-        v4Planner.addAction(Actions.SWEEP, [WETH.address, bob.address])
+        v4Planner.addAction(Actions.SETTLE, [MAINNET_USDC.address, OPEN_DELTA, SOURCE_ROUTER])
+        v4Planner.addAction(Actions.SETTLE, [MAINNET_WETH.address, OPEN_DELTA, SOURCE_ROUTER])
+        v4Planner.addAction(Actions.SWEEP, [MAINNET_USDC.address, bob.address])
+        v4Planner.addAction(Actions.SWEEP, [MAINNET_WETH.address, bob.address])
 
         const calldata = encodeModifyLiquidities({ unlockData: v4Planner.finalize(), deadline: MAX_UINT })
 
@@ -305,8 +305,8 @@ describe('V3 to V4 Migration Gas Tests', () => {
 
         // mint the nft to bob on v3
         const tx = await v3NFTPositionManager.mint({
-          token0: USDC.address,
-          token1: WETH.address,
+          token0: MAINNET_USDC.address,
+          token1: MAINNET_WETH.address,
           fee: FeeAmount.LOW,
           tickLower: 0,
           tickUpper: 194980,
@@ -377,10 +377,10 @@ describe('V3 to V4 Migration Gas Tests', () => {
           '0x',
         ])
 
-        v4Planner.addAction(Actions.SETTLE, [USDC.address, OPEN_DELTA, SOURCE_ROUTER])
-        v4Planner.addAction(Actions.SETTLE, [WETH.address, OPEN_DELTA, SOURCE_ROUTER])
-        v4Planner.addAction(Actions.SWEEP, [USDC.address, bob.address])
-        v4Planner.addAction(Actions.SWEEP, [WETH.address, bob.address])
+        v4Planner.addAction(Actions.SETTLE, [MAINNET_USDC.address, OPEN_DELTA, SOURCE_ROUTER])
+        v4Planner.addAction(Actions.SETTLE, [MAINNET_WETH.address, OPEN_DELTA, SOURCE_ROUTER])
+        v4Planner.addAction(Actions.SWEEP, [MAINNET_USDC.address, bob.address])
+        v4Planner.addAction(Actions.SWEEP, [MAINNET_WETH.address, bob.address])
 
         const calldata = encodeModifyLiquidities({ unlockData: v4Planner.finalize(), deadline: MAX_UINT })
 
@@ -399,8 +399,8 @@ describe('V3 to V4 Migration Gas Tests', () => {
 
         // mint the nft to bob on v3
         const tx = await v3NFTPositionManager.mint({
-          token0: USDC.address,
-          token1: WETH.address,
+          token0: MAINNET_USDC.address,
+          token1: MAINNET_WETH.address,
           fee: FeeAmount.LOW,
           tickLower: 0,
           tickUpper: 194980,
@@ -462,7 +462,7 @@ describe('V3 to V4 Migration Gas Tests', () => {
 
         planner.addCommand(CommandType.UNWRAP_WETH, [router.address, 0])
 
-        planner.addCommand(CommandType.TRANSFER, [USDC.address, v4PositionManager.address, CONTRACT_BALANCE])
+        planner.addCommand(CommandType.TRANSFER, [MAINNET_USDC.address, v4PositionManager.address, CONTRACT_BALANCE])
 
         v4Planner.addAction(Actions.MINT_POSITION, [
           ETH_USDC.poolKey,
@@ -475,9 +475,9 @@ describe('V3 to V4 Migration Gas Tests', () => {
           '0x',
         ])
 
-        v4Planner.addAction(Actions.SETTLE, [USDC.address, OPEN_DELTA, SOURCE_ROUTER])
+        v4Planner.addAction(Actions.SETTLE, [MAINNET_USDC.address, OPEN_DELTA, SOURCE_ROUTER])
         v4Planner.addAction(Actions.SETTLE, [ZERO_ADDRESS, OPEN_DELTA, SOURCE_ROUTER])
-        v4Planner.addAction(Actions.SWEEP, [USDC.address, bob.address])
+        v4Planner.addAction(Actions.SWEEP, [MAINNET_USDC.address, bob.address])
         v4Planner.addAction(Actions.SWEEP, [ZERO_ADDRESS, bob.address])
 
         const calldata = encodeModifyLiquidities({ unlockData: v4Planner.finalize(), deadline: MAX_UINT })

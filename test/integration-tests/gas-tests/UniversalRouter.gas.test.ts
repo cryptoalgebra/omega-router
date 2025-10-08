@@ -1,9 +1,9 @@
 import { UniversalRouter, IWETH, ERC20 } from '../../../typechain'
 import { expect } from '../shared/expect'
-import { ALICE_ADDRESS } from '../shared/constants'
+import { MAINNET_ALICE_ADDRESS } from '../shared/constants'
 import { abi as TOKEN_ABI } from '../../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
 import { abi as WETH_ABI } from '../../../artifacts/@uniswap/v4-periphery/src/interfaces/external/IWETH.sol/IWETH.json'
-import { resetFork, WETH, DAI } from '../shared/mainnetForkHelpers'
+import { resetFork, MAINNET_WETH, MAINNET_DAI } from '../shared/mainnetForkHelpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import hre from 'hardhat'
 import deployUniversalRouter from '../shared/deployUniversalRouter'
@@ -20,13 +20,13 @@ describe('UniversalRouter Gas Tests', () => {
 
   beforeEach(async () => {
     await resetFork()
-    alice = await ethers.getSigner(ALICE_ADDRESS)
+    alice = await ethers.getSigner(MAINNET_ALICE_ADDRESS)
     await hre.network.provider.request({
       method: 'hardhat_impersonateAccount',
-      params: [ALICE_ADDRESS],
+      params: [MAINNET_ALICE_ADDRESS],
     })
-    daiContract = new ethers.Contract(DAI.address, TOKEN_ABI, alice) as ERC20
-    wethContract = new ethers.Contract(WETH.address, WETH_ABI, alice) as IWETH
+    daiContract = new ethers.Contract(MAINNET_DAI.address, TOKEN_ABI, alice) as ERC20
+    wethContract = new ethers.Contract(MAINNET_WETH.address, WETH_ABI, alice) as IWETH
     router = (await deployUniversalRouter()).connect(alice) as UniversalRouter
     planner = new RoutePlanner()
   })

@@ -1,7 +1,7 @@
 import JSBI from 'jsbi'
 import { BigintIsh, Token } from '@uniswap/sdk-core'
 import { encodeSqrtRatioX96, nearestUsableTick, Pool, TickMath } from '@cryptoalgebra/integral-sdk'
-import { WETH, DAI, USDC, USDT } from './mainnetForkHelpers'
+import { MAINNET_WETH, MAINNET_DAI, MAINNET_USDC, MAINNET_USDT } from './mainnetForkHelpers'
 import { BigNumber } from 'ethers'
 import { DEFAULT_POOL_DEPLOYER } from "./constants";
 
@@ -28,36 +28,55 @@ export const makePool = (token0: Token, token1: Token, liquidity: number) => {
 export function getFeeTier(tokenA: string, tokenB: string): number {
   const [token0, token1] = tokenA < tokenB ? [tokenA, tokenB] : [tokenB, tokenA]
 
-  if (token0 == DAI.address && token1 == WETH.address) return 3000
-  if (token0 == USDC.address && token1 == WETH.address) return 500
-  if (token0 == WETH.address && token1 == USDT.address) return 500
-  if (token0 == DAI.address && token1 == USDC.address) return 100
-  if (token0 == DAI.address && token1 == USDT.address) return 100
-  if (token0 == USDC.address && token1 == USDT.address) return 100
+  if (token0 == MAINNET_DAI.address && token1 == MAINNET_WETH.address) return 3000
+  if (token0 == MAINNET_USDC.address && token1 == MAINNET_WETH.address) return 500
+  if (token0 == MAINNET_WETH.address && token1 == MAINNET_USDT.address) return 500
+  if (token0 == MAINNET_DAI.address && token1 == MAINNET_USDC.address) return 100
+  if (token0 == MAINNET_DAI.address && token1 == MAINNET_USDT.address) return 100
+  if (token0 == MAINNET_USDC.address && token1 == MAINNET_USDT.address) return 100
   else return 3000
 }
 
 export function getTickSpacing(tokenA: string, tokenB: string): number {
     const [token0, token1] = tokenA < tokenB ? [tokenA, tokenB] : [tokenB, tokenA]
 
-    if (token0 == DAI.address && token1 == WETH.address) return 60
-    if (token0 == USDC.address && token1 == WETH.address) return 30
-    if (token0 == WETH.address && token1 == USDT.address) return 30
-    if (token0 == DAI.address && token1 == USDC.address) return 1
-    if (token0 == DAI.address && token1 == USDT.address) return 1
-    if (token0 == USDC.address && token1 == USDT.address) return 1
+    if (token0 == MAINNET_DAI.address && token1 == MAINNET_WETH.address) return 60
+    if (token0 == MAINNET_USDC.address && token1 == MAINNET_WETH.address) return 30
+    if (token0 == MAINNET_WETH.address && token1 == MAINNET_USDT.address) return 30
+    if (token0 == MAINNET_DAI.address && token1 == MAINNET_USDC.address) return 1
+    if (token0 == MAINNET_DAI.address && token1 == MAINNET_USDT.address) return 1
+    if (token0 == MAINNET_USDC.address && token1 == MAINNET_USDT.address) return 1
     else return 60
 }
 
-export const pool_DAI_WETH = makePool(DAI, WETH, liquidity)
-export const pool_DAI_USDC = makePool(USDC, DAI, liquidity)
-export const pool_USDC_WETH = makePool(USDC, WETH, liquidity)
-export const pool_USDC_USDT = makePool(USDC, USDT, liquidity)
-export const pool_DAI_USDT = makePool(DAI, USDT, liquidity)
-export const pool_WETH_USDT = makePool(USDT, WETH, liquidity)
+export const pool_DAI_WETH = makePool(MAINNET_DAI, MAINNET_WETH, liquidity)
+export const pool_DAI_USDC = makePool(MAINNET_USDC, MAINNET_DAI, liquidity)
+export const pool_USDC_WETH = makePool(MAINNET_USDC, MAINNET_WETH, liquidity)
+export const pool_USDC_USDT = makePool(MAINNET_USDC, MAINNET_USDT, liquidity)
+export const pool_DAI_USDT = makePool(MAINNET_DAI, MAINNET_USDT, liquidity)
+export const pool_WETH_USDT = makePool(MAINNET_USDT, MAINNET_WETH, liquidity)
 
-// v3
+// v3 Uniswap
+
+const FEE_SIZE = 3
+
 export function encodePath(path: string[]): string {
+  let encoded = '0x'
+  for (let i = 0; i < path.length - 1; i++) {
+    // 20 byte encoding of the address
+    encoded += path[i].slice(2)
+    // 3 byte encoding of the fee
+    encoded += getFeeTier(path[i], path[i + 1])
+      .toString(16)
+      .padStart(2 * FEE_SIZE, '0')
+  }
+  // encode the final token
+  encoded += path[path.length - 1].slice(2)
+
+  return encoded.toLowerCase()
+}
+
+export function encodePathIntegral(path: string[]): string {
   let encoded = '0x'
   for (let i = 0; i < path.length - 1; i++) {
     // 20 byte encoding of the address
@@ -77,6 +96,14 @@ export function encodePathExactInput(tokens: string[]): string {
 
 export function encodePathExactOutput(tokens: string[]): string {
   return encodePath(tokens.slice().reverse())
+}
+
+export function encodePathExactInputIntegral(tokens: string[]): string {
+  return encodePathIntegral(tokens)
+}
+
+export function encodePathExactOutputIntegral(tokens: string[]): string {
+  return encodePathIntegral(tokens.slice().reverse())
 }
 
 export function expandTo18Decimals(n: number): BigintIsh {
