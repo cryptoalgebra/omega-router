@@ -15,33 +15,46 @@ abstract contract ERC4626WrapUnwrap {
     /// @notice Wraps underlying tokens into an ERC4626 wrapper contract.
     /// @param wrapper The address of the ERC4626 wrapper contract.
     /// @param underlyingToken The address of the underlying token.
+    /// @param receiver The address which will receive wrapped tokens.
     /// @param amountIn The amount of underlying tokens to wrap.
     /// @param minAmountOut The minimum amount of wrapped tokens to receive.
     /// @return amountOut The amount of wrapped tokens received.
-    function erc4626Wrap(address wrapper, address underlyingToken, uint256 amountIn, uint256 minAmountOut) internal virtual returns (uint256 amountOut) {
+    function erc4626Wrap(
+        address wrapper,
+        address underlyingToken,
+        address receiver,
+        uint256 amountIn,
+        uint256 minAmountOut
+    ) internal virtual returns (uint256 amountOut) {
         // use amountIn == ActionConstants.CONTRACT_BALANCE as a flag to wrap the entire balance of the contract
         if (amountIn == ActionConstants.CONTRACT_BALANCE) {
             amountIn = IERC20(underlyingToken).balanceOf(address(this));
         }
 
         IERC20(underlyingToken).forceApprove(wrapper, amountIn);
-        amountOut = IERC4626(wrapper).deposit(amountIn, address(this));
+        amountOut = IERC4626(wrapper).deposit(amountIn, receiver);
 
         if (amountOut < minAmountOut) revert ERC4626TooLittleReceived();
     }
 
     /// @notice Unwraps wrapped tokens from an ERC4626 wrapper contract.
     /// @param wrapper The address of the ERC4626 wrapper contract.
+    /// @param receiver The address which will receive underlying tokens.
     /// @param amountIn The amount of wrapped tokens to unwrap.
     /// @param minAmountOut The minimum amount of underlying tokens to receive.
     /// @return amountOut The amount of underlying tokens received.
-    function erc4626Unwrap(address wrapper, uint256 amountIn, uint256 minAmountOut) internal virtual returns (uint256 amountOut) {
+    function erc4626Unwrap(
+        address wrapper,
+        address receiver,
+        uint256 amountIn,
+        uint256 minAmountOut
+    ) internal virtual returns (uint256 amountOut) {
         // use amountIn == ActionConstants.CONTRACT_BALANCE as a flag to wrap the entire balance of the contract
         if (amountIn == ActionConstants.CONTRACT_BALANCE) {
             amountIn = IERC20(wrapper).balanceOf(address(this));
         }
 
-        amountOut = IERC4626(wrapper).redeem(amountIn, address(this), address(this));
+        amountOut = IERC4626(wrapper).redeem(amountIn, receiver, address(this));
         if (amountOut < minAmountOut) revert ERC4626TooLittleReceived();
     }
 }

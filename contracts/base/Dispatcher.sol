@@ -148,18 +148,20 @@ abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter
                         Payments.payPortion(token, map(recipient), bips);
                     } else {
                         // the only way to be here is command 0x07 == ERC4626_WRAP
-                        // equivalent:  abi.decode(inputs, (address, address, uint256, uint256))
+                        // equivalent:  abi.decode(inputs, (address, address, address, uint256, uint256))
                         address wrapper;
                         address underlyingToken;
+                        address receiver;
                         uint256 amountIn;
                         uint256 amountOutMin;
                         assembly {
                             wrapper := calldataload(inputs.offset)
                             underlyingToken := calldataload(add(inputs.offset, 0x20))
-                            amountIn := calldataload(add(inputs.offset, 0x40))
-                            amountOutMin := calldataload(add(inputs.offset, 0x60))
+                            receiver := calldataload(add(inputs.offset, 0x40))
+                            amountIn := calldataload(add(inputs.offset, 0x60))
+                            amountOutMin := calldataload(add(inputs.offset, 0x80))
                         }
-                        erc4626Wrap(wrapper, underlyingToken, amountIn, amountOutMin);
+                        erc4626Wrap(wrapper, underlyingToken, map(receiver), amountIn, amountOutMin);
                     }
                 } else {
                     if (command == Commands.V2_SWAP_EXACT_IN) {
@@ -249,16 +251,18 @@ abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter
                         if (!success) output = abi.encodePacked(BalanceTooLow.selector);
                     } else {
                         // the only way to be here is command 0x0f == ERC4626_UNWRAP
-                        // equivalent:  abi.decode(inputs, (address, uint256, uint256))
+                        // equivalent:  abi.decode(inputs, (address, address, uint256, uint256))
                         address wrapper;
+                        address receiver;
                         uint256 amountIn;
                         uint256 amountOutMin;
                         assembly {
                             wrapper := calldataload(inputs.offset)
+                            receiver := calldataload(add(inputs.offset, 0x20))
                             amountIn := calldataload(add(inputs.offset, 0x40))
                             amountOutMin := calldataload(add(inputs.offset, 0x60))
                         }
-                        erc4626Unwrap(wrapper, amountIn, amountOutMin);
+                        erc4626Unwrap(wrapper, map(receiver), amountIn, amountOutMin);
                     }
                 }
             } else {

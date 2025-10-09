@@ -15,7 +15,7 @@ import { resetFork,
 import {
   DEADLINE,
   MAX_UINT,
-  MAX_UINT160,
+  MAX_UINT160, MSG_SENDER,
 } from './shared/constants'
 import { expandTo6DecimalsBN } from './shared/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -77,6 +77,7 @@ describe('ERC4626 Wrap/Unwrap Tests:', () => {
     planner.addCommand(CommandType.ERC4626_WRAP, [
       waUsdcContract.address,
       usdcContract.address,
+      MSG_SENDER,
       amountInUSDC,
       expectedAmountOutWaUSDC
     ])
@@ -89,7 +90,7 @@ describe('ERC4626 Wrap/Unwrap Tests:', () => {
       usdcContract
     )
 
-    const receivedWaUSDC = await waUsdcContract.balanceOf(router.address)
+    const receivedWaUSDC = await waUsdcContract.balanceOf(bob.address)
     expect(receivedWaUSDC).to.be.eq(expectedAmountOutWaUSDC)
   })
 
@@ -106,11 +107,11 @@ describe('ERC4626 Wrap/Unwrap Tests:', () => {
     planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [MAINNET_WA_USDC.address, router.address, amountInWaUSDC])
     planner.addCommand(CommandType.ERC4626_UNWRAP, [
       waUsdcContract.address,
-      usdcContract.address,
+      MSG_SENDER,
       amountInWaUSDC,
       expectedAmountOutUSDC
     ])
-    await executeRouter(
+    const {usdcBalanceBefore, usdcBalanceAfter} = await executeRouter(
       planner,
       bob,
       router,
@@ -119,7 +120,7 @@ describe('ERC4626 Wrap/Unwrap Tests:', () => {
       usdcContract
     )
 
-    const receivedUSDC = await usdcContract.balanceOf(router.address)
-    expect(receivedUSDC).to.be.eq(expectedAmountOutUSDC)
+    // const receivedUSDC = await usdcContract.balanceOf(router.address)
+    expect(usdcBalanceAfter.sub(usdcBalanceBefore)).to.be.eq(expectedAmountOutUSDC)
   })
 })

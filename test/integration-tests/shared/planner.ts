@@ -75,7 +75,7 @@ const ABI_DEFINITION: { [key in CommandType]: string[] } = {
   [CommandType.TRANSFER]: ['address', 'address', 'uint256'],
   [CommandType.PAY_PORTION]: ['address', 'address', 'uint256'],
   [CommandType.BALANCE_CHECK_ERC20]: ['address', 'address', 'uint256'],
-  [CommandType.ERC4626_WRAP]: ['address', 'address', 'uint256', 'uint256'],
+  [CommandType.ERC4626_WRAP]: ['address', 'address', 'address', 'uint256', 'uint256'],
   [CommandType.ERC4626_UNWRAP]: ['address', 'address', 'uint256', 'uint256'],
 
   [CommandType.UNISWAP_V3_SWAP_EXACT_IN]: ['address', 'uint256', 'uint256', 'bytes', 'bool'],

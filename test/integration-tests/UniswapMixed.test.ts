@@ -830,7 +830,7 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
     })
   })
 
-  describe.only('Boosted Pools', () => {
+  describe('Boosted Pools', () => {
     beforeEach(async () => {
       // Get wrapped tokens for the LP
       await wethContract.connect(alice).approve(MAINNET_WA_WETH.address, MAX_UINT)
@@ -883,6 +883,7 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
       planner.addCommand(CommandType.ERC4626_WRAP, [
         waUSDCContract.address,
         usdcContract.address,
+        ADDRESS_THIS,
         amountInUSDC,
         expectedAmountOutWaUSDC
       ])
@@ -895,12 +896,16 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
       ])
       planner.addCommand(CommandType.ERC4626_UNWRAP, [
         waWETHContract.address,
-        wethContract.address,
+        ADDRESS_THIS,
         CONTRACT_BALANCE,
         0
       ])
+      planner.addCommand(CommandType.UNWRAP_WETH, [
+        MSG_SENDER,
+        0
+      ])
 
-      await executeRouter(
+      const {ethBalanceBefore, ethBalanceAfter, v3SwapEventArgs, gasSpent} = await executeRouter(
         planner,
         bob,
         router,
@@ -908,6 +913,11 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
         daiContract,
         usdcContract
       )
+
+      const amountOut = (v3SwapEventArgs?.amount0!).mul(-1)
+
+      // "greater than" because `amountOut` is WA_ETH amount. After UNWRAP it transforms into the greater ETH amount
+      expect(ethBalanceAfter.sub(ethBalanceBefore)).to.be.gt(amountOut.sub(gasSpent))
     })
   })
 })
