@@ -1,8 +1,13 @@
-import { ERC20, ERC20__factory, IPermit2, INonfungiblePositionManager } from '../../../typechain'
+import { ERC20, ERC20__factory, IPermit2, INonfungiblePositionManager, IUniswapPoolInitializer } from '../../../typechain'
 import { abi as PERMIT2_ABI } from '../../../artifacts/permit2/src/interfaces/IPermit2.sol/IPermit2.json'
 import { abi as V2_PAIR_ABI } from '../../../artifacts/@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol/IUniswapV2Pair.json'
 import { abi as INonfungiblePositionManager_ABI } from '../../../artifacts/@cryptoalgebra/integral-periphery/contracts/interfaces/INonfungiblePositionManager.sol/INonfungiblePositionManager.json'
-import { PERMIT2_ADDRESS, INTEGRAL_NFT_POSITION_MANAGER_MAINNET } from './constants'
+import { abi as IUniswapNonfungiblePositionManager_ABI } from '../../../node_modules/@uniswap/v3-periphery/artifacts/contracts/interfaces/INonfungiblePositionManager.sol/INonfungiblePositionManager.json'
+import {
+  PERMIT2_ADDRESS,
+  INTEGRAL_NFT_POSITION_MANAGER_MAINNET,
+  UNISWAP_V3_NFT_POSITION_MANAGER_MAINNET
+} from './constants'
 import { Currency, Token, WETH9 } from '@uniswap/sdk-core'
 import { TransactionResponse } from '@ethersproject/abstract-provider'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -16,16 +21,17 @@ export const MAINNET_DAI = new Token(1, '0x6B175474E89094C44Da98b954EedeAC495271
 export const MAINNET_USDC = new Token(1, '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 6, 'USDC', 'USD//C')
 export const MAINNET_USDT = new Token(1, '0xdAC17F958D2ee523a2206206994597C13D831ec7', 6, 'USDT', 'Tether USD')
 export const MAINNET_WA_USDC = new Token(1, '0xd4fa2d31b7968e448877f69a96de69f5de8cd23e', 6, 'waUSDC', 'Wrapped Aave USDC')
+export const MAINNET_WA_WETH = new Token(1, '0x0bfc9d54Fc184518A81162F8fB99c2eACa081202', 18, 'waWETH', 'Wrapped Aave WETH')
 export const MAINNET_GALA = new Token(1, '0x15D4c048F83bd7e37d49eA4C83a07267Ec4203dA', 8, 'GALA', 'Gala')
 
 export const MAINNET_USDC_WHALE = '0x0b07f64ABc342B68AEc57c0936E4B6fD4452967E'
+export const MAINNET_SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45'
 
 
 export const BASE_WETH = new Token(8453, '0x4200000000000000000000000000000000000006', 18, 'WETH', 'Wrapped Ether')
 export const BASE_USDC = new Token(8453, '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', 6, 'USDC', 'USD//C')
 export const BASE_DAI = new Token(8453, '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', 18, 'DAI', 'Dai Stablecoin')
 
-export const SWAP_ROUTER_V2 = '0x6f4bE24d7dC93b6ffcBAb3Fd0747c5817Cea3F9e'
 export const USDC_WHALE = '0x0772f014009162efB833eF34d3eA3f243FC735Ba'
 
 export interface MethodParameters {
@@ -49,11 +55,11 @@ export const approveSwapRouter02 = async (
     const aliceTokenIn: ERC20 = ERC20__factory.connect(currency.address, alice)
 
     if (currency.symbol == 'USDT') {
-      await (await aliceTokenIn.approve(overrideSwapRouter02Address ?? SWAP_ROUTER_V2, 0)).wait()
+      await (await aliceTokenIn.approve(overrideSwapRouter02Address ?? MAINNET_SWAP_ROUTER_V2, 0)).wait()
     }
 
     return await (
-      await aliceTokenIn.approve(overrideSwapRouter02Address ?? SWAP_ROUTER_V2, constants.MaxUint256)
+      await aliceTokenIn.approve(overrideSwapRouter02Address ?? MAINNET_SWAP_ROUTER_V2, constants.MaxUint256)
     ).wait()
   }
 }
@@ -83,7 +89,7 @@ export const approveAndExecuteSwapRouter02 = async (
 
   const transaction = {
     data: methodParameters.calldata,
-    to: SWAP_ROUTER_V2,
+    to: MAINNET_SWAP_ROUTER_V2,
     value: BigNumber.from(methodParameters.value),
     from: alice.address,
     gasPrice: BigNumber.from(2000000000000),
@@ -100,7 +106,7 @@ export const executeSwapRouter02Swap = async (
 ): Promise<TransactionResponse> => {
   const transaction = {
     data: methodParameters.calldata,
-    to: SWAP_ROUTER_V2,
+    to: MAINNET_SWAP_ROUTER_V2,
     value: BigNumber.from(methodParameters.value),
     from: alice.address,
     gasPrice: BigNumber.from(2000000000000),
@@ -134,3 +140,8 @@ export const INTEGRAL_NFT_POSITION_MANAGER = new ethers.Contract(
   INTEGRAL_NFT_POSITION_MANAGER_MAINNET,
   INonfungiblePositionManager_ABI
 ) as INonfungiblePositionManager
+
+export const UNISWAP_NFT_POSITION_MANAGER = new ethers.Contract(
+  UNISWAP_V3_NFT_POSITION_MANAGER_MAINNET,
+  IUniswapNonfungiblePositionManager_ABI
+) as IUniswapPoolInitializer

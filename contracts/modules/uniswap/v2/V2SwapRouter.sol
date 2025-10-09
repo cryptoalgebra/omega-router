@@ -70,6 +70,7 @@ abstract contract V2SwapRouter is UniswapImmutables, Permit2Payments {
         _v2Swap(path, recipient, firstPair);
 
         uint256 amountOut = tokenOut.balanceOf(recipient) - balanceBefore;
+
         if (amountOut < amountOutMinimum) revert V2TooLittleReceived();
     }
 

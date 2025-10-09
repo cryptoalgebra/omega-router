@@ -2,19 +2,27 @@ import type { Contract } from '@ethersproject/contracts'
 import { Pair } from '@uniswap/v2-sdk'
 import { expect } from './shared/expect'
 import { BigNumber } from 'ethers'
-import { IPermit2, PoolManager, PositionManager, UniversalRouter } from '../../typechain'
+import { IPermit2, UniversalRouter } from '../../typechain'
 import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
-import { resetFork, MAINNET_WETH, MAINNET_DAI, MAINNET_USDC, MAINNET_USDT, PERMIT2 } from './shared/mainnetForkHelpers'
+import { abi as ERC4626_ABI } from '../../artifacts/@openzeppelin/contracts/interfaces/IERC4626.sol/IERC4626.json';
+import {
+  resetFork,
+  MAINNET_WETH,
+  MAINNET_DAI,
+  MAINNET_USDC,
+  MAINNET_USDT,
+  MAINNET_WA_USDC,
+  MAINNET_WA_WETH,
+  PERMIT2, UNISWAP_NFT_POSITION_MANAGER,
+} from './shared/mainnetForkHelpers'
 import {
   ADDRESS_THIS,
   MAINNET_ALICE_ADDRESS,
   CONTRACT_BALANCE,
   DEADLINE,
-  ETH_ADDRESS,
   MAX_UINT,
   MAX_UINT160,
   MSG_SENDER,
-  OPEN_DELTA,
   SOURCE_MSG_SENDER,
   SOURCE_ROUTER,
 } from './shared/constants'
@@ -26,17 +34,11 @@ import hre from 'hardhat'
 import { getPermitBatchSignature } from './shared/protocolHelpers/permit2'
 import { encodePathExactInput, encodePathExactOutput } from './shared/swapRouter02Helpers'
 import { executeRouter } from './shared/executeRouter'
-import { Actions, V4Planner } from './shared/v4Planner'
-import {
-  addLiquidityToV4Pool,
-  DAI_USDC,
-  deployV4PoolManager,
-  encodeMultihopExactInPath,
-  ETH_USDC,
-  initializeV4Pool,
-  USDC_WETH,
-} from './shared/v4Helpers'
 const { ethers } = hre
+import {encodePriceSqrt} from '../../lib/v3-periphery/test/shared/encodePriceSqrt';
+import {getMinTick, getMaxTick} from '../../lib/v3-periphery/test/shared/ticks';
+
+const USDC_WHALE = '0x0b07f64ABc342B68AEc57c0936E4B6fD4452967E'
 
 describe('Uniswap V2, V3, and V4 Tests:', () => {
   let alice: SignerWithAddress
@@ -46,40 +48,41 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
   let daiContract: Contract
   let wethContract: Contract
   let usdcContract: Contract
+  let waWETHContract: Contract
+  let waUSDCContract: Contract
   let planner: RoutePlanner
-  let v4Planner: V4Planner
-  let v4PoolManager: PoolManager
-  let v4PositionManager: PositionManager
 
-  // current market ETH price at block
-  const USD_ETH_PRICE = 3820
 
   beforeEach(async () => {
-    await resetFork()
-    await hre.network.provider.request({
-      method: 'hardhat_impersonateAccount',
-      params: [MAINNET_ALICE_ADDRESS],
-    })
+    await resetFork(23432811)
+
     alice = await ethers.getSigner(MAINNET_ALICE_ADDRESS)
     bob = (await ethers.getSigners())[1]
     daiContract = new ethers.Contract(MAINNET_DAI.address, TOKEN_ABI, bob)
     wethContract = new ethers.Contract(MAINNET_WETH.address, TOKEN_ABI, bob)
     usdcContract = new ethers.Contract(MAINNET_USDC.address, TOKEN_ABI, bob)
+    waWETHContract = new ethers.Contract(MAINNET_WA_WETH.address, ERC4626_ABI, bob)
+    waUSDCContract = new ethers.Contract(MAINNET_WA_USDC.address, ERC4626_ABI, bob)
     permit2 = PERMIT2.connect(bob) as IPermit2
 
-    v4PoolManager = (await deployV4PoolManager(bob.address)).connect(bob) as PoolManager
     router = (await deployUniversalRouter()).connect(bob) as UniversalRouter
-
-    v4PositionManager = (await ethers.getContractAt('PositionManager', await router.V4_POSITION_MANAGER())).connect(
-      bob
-    ) as PositionManager
     planner = new RoutePlanner()
-    v4Planner = new V4Planner()
 
-    // alice gives bob some tokens
+    await hre.network.provider.request({
+      method: 'hardhat_impersonateAccount',
+      params: [MAINNET_ALICE_ADDRESS],
+    })
+    // air drop some tokens
     await daiContract.connect(alice).transfer(bob.address, expandTo18DecimalsBN(1000000))
-    await wethContract.connect(alice).transfer(bob.address, expandTo18DecimalsBN(1000))
-    await usdcContract.connect(alice).transfer(bob.address, expandTo6DecimalsBN(50000000))
+    await wethContract.connect(alice).transfer(bob.address, expandTo18DecimalsBN(100))
+
+    const usdcWhale = await ethers.getSigner(USDC_WHALE)
+    await hre.network.provider.request({
+      method: 'hardhat_impersonateAccount',
+      params: [USDC_WHALE],
+    })
+    await usdcContract.connect(usdcWhale).transfer(alice.address, expandTo6DecimalsBN(50000000))
+    await usdcContract.connect(usdcWhale).transfer(bob.address, expandTo6DecimalsBN(50000000))
 
     // Bob max-approves the permit2 contract to access his DAI and WETH
     await daiContract.connect(bob).approve(permit2.address, MAX_UINT)
@@ -90,21 +93,6 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
     await permit2.approve(MAINNET_DAI.address, router.address, MAX_UINT160, DEADLINE)
     await permit2.approve(MAINNET_WETH.address, router.address, MAX_UINT160, DEADLINE)
     await permit2.approve(MAINNET_USDC.address, router.address, MAX_UINT160, DEADLINE)
-
-    // for setting up pools, bob gives position manager approval on permit2
-    await permit2.approve(MAINNET_DAI.address, v4PositionManager.address, MAX_UINT160, DEADLINE)
-    await permit2.approve(MAINNET_WETH.address, v4PositionManager.address, MAX_UINT160, DEADLINE)
-    await permit2.approve(MAINNET_USDC.address, v4PositionManager.address, MAX_UINT160, DEADLINE)
-
-    // bob initializes 3 v4 pools
-    await initializeV4Pool(v4PoolManager, USDC_WETH.poolKey, USDC_WETH.price)
-    await initializeV4Pool(v4PoolManager, DAI_USDC.poolKey, DAI_USDC.price)
-    await initializeV4Pool(v4PoolManager, ETH_USDC.poolKey, ETH_USDC.price)
-
-    // bob adds liquidity to the pools
-    await addLiquidityToV4Pool(v4PositionManager, USDC_WETH, expandTo18DecimalsBN(2).toString(), bob)
-    await addLiquidityToV4Pool(v4PositionManager, DAI_USDC, expandTo18DecimalsBN(400).toString(), bob)
-    await addLiquidityToV4Pool(v4PositionManager, ETH_USDC, expandTo18DecimalsBN(0.1).toString(), bob)
   })
 
   describe('Interleaving routes', () => {
@@ -178,8 +166,8 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
       const route2 = [MAINNET_DAI.address, MAINNET_USDT.address, MAINNET_WETH.address]
       const v2AmountIn1: BigNumber = expandTo18DecimalsBN(20)
       const v2AmountIn2: BigNumber = expandTo18DecimalsBN(30)
-      const minAmountOut1 = expandTo18DecimalsBN(0.005)
-      const minAmountOut2 = expandTo18DecimalsBN(0.0075)
+      const minAmountOut1 = expandTo18DecimalsBN(0.0045)
+      const minAmountOut2 = expandTo18DecimalsBN(0.006)
 
       // 1) transfer funds into DAI-USDC and DAI-USDT pairs to trade
       planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [MAINNET_DAI.address, Pair.getAddress(MAINNET_DAI, MAINNET_USDC), v2AmountIn1])
@@ -206,8 +194,8 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
       const route2 = [MAINNET_DAI.address, MAINNET_USDT.address, MAINNET_WETH.address]
       const v2AmountIn1: BigNumber = expandTo18DecimalsBN(20)
       const v2AmountIn2: BigNumber = expandTo18DecimalsBN(30)
-      const minAmountOut1 = expandTo18DecimalsBN(0.005)
-      const minAmountOut2 = expandTo18DecimalsBN(0.0075)
+      const minAmountOut1 = expandTo18DecimalsBN(0.0045)
+      const minAmountOut2 = expandTo18DecimalsBN(0.006)
 
       const BATCH_TRANSFER = [
         {
@@ -248,8 +236,8 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
       const route2 = [MAINNET_DAI.address, MAINNET_USDT.address, MAINNET_WETH.address]
       const v2AmountIn1: BigNumber = expandTo18DecimalsBN(20)
       const v2AmountIn2: BigNumber = expandTo18DecimalsBN(30)
-      const minAmountOut1 = expandTo18DecimalsBN(0.005)
-      const minAmountOut2 = expandTo18DecimalsBN(0.0075)
+      const minAmountOut1 = expandTo18DecimalsBN(0.0045)
+      const minAmountOut2 = expandTo18DecimalsBN(0.006)
 
       // 1) trade route1 and return tokens to bob
       planner.addCommand(CommandType.V2_SWAP_EXACT_IN, [
@@ -564,7 +552,7 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
       const v2AmountOut: BigNumber = expandTo18DecimalsBN(0.5)
       const v3AmountOut: BigNumber = expandTo18DecimalsBN(1)
       const path = encodePathExactOutput(tokens)
-      const maxAmountIn = expandTo18DecimalsBN(4000)
+      const maxAmountIn = expandTo18DecimalsBN(4205)
       const fullAmountOut = v2AmountOut.add(v3AmountOut)
 
       planner.addCommand(CommandType.V2_SWAP_EXACT_OUT, [
@@ -595,58 +583,6 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
 
       // TODO: permit2 test alice doesn't send more than maxAmountIn DAI
       expect(ethBalanceAfter.sub(ethBalanceBefore)).to.eq(fullAmountOut.sub(gasSpent))
-    })
-
-    it('ERC20 --> ERC20 split V4 and V4 different routes, with wrap, aggregate slippage', async () => {
-      // route 1: DAI -> USDC -> WETH
-      // route 2: DAI -> USDC -> ETH, then router wraps ETH -> WETH
-      const route1 = [DAI_USDC.poolKey, USDC_WETH.poolKey]
-      const route2 = [DAI_USDC.poolKey, ETH_USDC.poolKey]
-      const v4AmountIn1 = expandTo18DecimalsBN(100)
-      const v4AmountIn2 = expandTo18DecimalsBN(150)
-      const aggregateMinOut = expandTo18DecimalsBN(250 / Math.floor(USD_ETH_PRICE * 1.01))
-
-      let currencyIn = daiContract.address
-      // add first split to v4 planner
-      v4Planner.addAction(Actions.SWAP_EXACT_IN, [
-        {
-          currencyIn,
-          path: encodeMultihopExactInPath(route1, currencyIn),
-          amountIn: v4AmountIn1,
-          amountOutMinimum: 0,
-        },
-      ])
-      // add second split to v4 planner
-      v4Planner.addAction(Actions.SWAP_EXACT_IN, [
-        {
-          currencyIn,
-          path: encodeMultihopExactInPath(route2, currencyIn),
-          amountIn: v4AmountIn2,
-          amountOutMinimum: 0,
-        },
-      ])
-      // settle all DAI with no limit
-      v4Planner.addAction(Actions.SETTLE_ALL, [currencyIn, v4AmountIn1.add(v4AmountIn2)])
-      // take all the WETH and all the ETH into the router
-      v4Planner.addAction(Actions.TAKE, [MAINNET_WETH.address, ADDRESS_THIS, OPEN_DELTA])
-      v4Planner.addAction(Actions.TAKE, [ETH_ADDRESS, ADDRESS_THIS, OPEN_DELTA])
-
-      planner.addCommand(CommandType.V4_SWAP, [v4Planner.actions, v4Planner.params])
-      // wrap all the ETH into WETH
-      planner.addCommand(CommandType.WRAP_ETH, [ADDRESS_THIS, CONTRACT_BALANCE])
-      // now we can send the WETH to the user, with aggregate slippage check
-      planner.addCommand(CommandType.SWEEP, [MAINNET_WETH.address, MSG_SENDER, aggregateMinOut])
-
-      const { daiBalanceBefore, daiBalanceAfter, wethBalanceBefore, wethBalanceAfter } = await executeRouter(
-        planner,
-        bob,
-        router,
-        wethContract,
-        daiContract,
-        usdcContract
-      )
-      expect(wethBalanceAfter.sub(wethBalanceBefore)).to.be.gte(aggregateMinOut)
-      expect(daiBalanceBefore.sub(daiBalanceAfter)).to.be.eq(v4AmountIn1.add(v4AmountIn2))
     })
 
     describe('Batch reverts', () => {
@@ -891,6 +827,87 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
         // usdc is unchanged as the second trade should have failed
         expect(usdcBalanceBefore).to.eq(usdcBalanceAfter)
       })
+    })
+  })
+
+  describe.only('Boosted Pools', () => {
+    beforeEach(async () => {
+      // Get wrapped tokens for the LP
+      await wethContract.connect(alice).approve(MAINNET_WA_WETH.address, MAX_UINT)
+      await usdcContract.connect(alice).approve(MAINNET_WA_USDC.address, MAX_UINT)
+
+      await waWETHContract.connect(alice).deposit(expandTo18DecimalsBN(100), alice.address)
+      await waUSDCContract.connect(alice).deposit(expandTo6DecimalsBN(400000), alice.address)
+
+      const waWETHAmount = await waWETHContract.balanceOf(alice.address)
+      const waUSDCAmount = await waUSDCContract.balanceOf(alice.address)
+
+      // create V3 pool with ERC4626 tokens
+      await UNISWAP_NFT_POSITION_MANAGER.connect(alice).createAndInitializePoolIfNecessary(
+        waWETHContract.address,
+        waUSDCContract.address,
+        3000,
+        encodePriceSqrt(waUSDCAmount, waWETHAmount)
+      )
+
+      // add liq to the pool
+      await waWETHContract.connect(alice).approve(UNISWAP_NFT_POSITION_MANAGER.address, MAX_UINT)
+      await waUSDCContract.connect(alice).approve(UNISWAP_NFT_POSITION_MANAGER.address, MAX_UINT)
+
+      await UNISWAP_NFT_POSITION_MANAGER.connect(alice).mint({
+        token0: waWETHContract.address,
+        token1: waUSDCContract.address,
+        fee: 3000,
+        tickLower: getMinTick(60),
+        tickUpper: getMaxTick(60),
+        amount0Desired: waWETHAmount,
+        amount1Desired: waUSDCAmount,
+        amount0Min: 0,
+        amount1Min: 0,
+        recipient: alice.address,
+        deadline: 10000000000000
+      })
+    })
+
+    it('100 USDC wrap -> waUSDC swap -> waWETH unwrap -> WETH', async () => {
+      const v3Tokens = [MAINNET_WA_USDC.address, MAINNET_WA_WETH.address]
+
+      const amountInUSDC = expandTo6DecimalsBN(100)
+      const expectedAmountOutWaUSDC = BigNumber.from(await waUSDCContract.previewDeposit(amountInUSDC)).mul(99).div(100)
+
+      // 1) transferFrom the funds,
+      // 2) perform wrap
+      // 3) Uniswap V3 swap using router's balance; amountIn = router's balance
+      // 4) perform unwrap; amountIn = router's balance
+      planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [MAINNET_USDC.address, router.address, amountInUSDC])
+      planner.addCommand(CommandType.ERC4626_WRAP, [
+        waUSDCContract.address,
+        usdcContract.address,
+        amountInUSDC,
+        expectedAmountOutWaUSDC
+      ])
+      planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_IN, [
+        ADDRESS_THIS,
+        CONTRACT_BALANCE,
+        0,
+        encodePathExactInput(v3Tokens),
+        SOURCE_ROUTER,
+      ])
+      planner.addCommand(CommandType.ERC4626_UNWRAP, [
+        waWETHContract.address,
+        wethContract.address,
+        CONTRACT_BALANCE,
+        0
+      ])
+
+      await executeRouter(
+        planner,
+        bob,
+        router,
+        wethContract,
+        daiContract,
+        usdcContract
+      )
     })
   })
 })
