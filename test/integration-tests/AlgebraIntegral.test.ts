@@ -3,7 +3,7 @@ import { expect } from './shared/expect'
 import { BigNumber, BigNumberish } from 'ethers'
 import { IPermit2, UniversalRouter } from '../../typechain'
 import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
-import {resetFork, BASE_WETH, BASE_USDC, BASE_DAI, PERMIT2, USDC_WHALE} from './shared/mainnetForkHelpers'
+import {resetFork, BASE_WETH, BASE_USDC, BASE_DAI, PERMIT2, BASE_DAI_WHALE} from './shared/mainnetForkHelpers'
 import {
     ADDRESS_THIS,
     BASE_ALICE_ADDRESS,
@@ -65,10 +65,10 @@ describe('Algebra Integral Tests:', () => {
     await usdcContract.connect(alice).transfer(bob.address, expandTo6DecimalsBN(100000))
     await wethContract.connect(alice).transfer(bob.address, expandTo18DecimalsBN(100))
 
-    const usdcWhale = await ethers.getSigner(USDC_WHALE)
+    const usdcWhale = await ethers.getSigner(BASE_DAI_WHALE)
     await hre.network.provider.request({
       method: 'hardhat_impersonateAccount',
-      params: [USDC_WHALE],
+      params: [BASE_DAI_WHALE],
     })
     await daiContract.connect(usdcWhale).transfer(bob.address, expandTo18DecimalsBN(100000))
 
