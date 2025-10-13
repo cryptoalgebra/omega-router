@@ -1,12 +1,12 @@
 import JSBI from 'jsbi'
-import {BigintIsh, CurrencyAmount, Token} from '@uniswap/sdk-core'
+import { BigintIsh, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { encodeSqrtRatioX96, nearestUsableTick, Pool as IntegralPool, TickMath } from '@cryptoalgebra/integral-sdk'
 import { Pool as UniswapV3Pool, TICK_SPACINGS, FeeAmount } from '@uniswap/v3-sdk'
-import {MAINNET_WETH, MAINNET_DAI, MAINNET_USDC, MAINNET_USDT, getV2PoolReserves} from './mainnetForkHelpers'
+import { MAINNET_WETH, MAINNET_DAI, MAINNET_USDC, MAINNET_USDT, getV2PoolReserves } from './mainnetForkHelpers'
 import { BigNumber } from 'ethers'
-import { DEFAULT_POOL_DEPLOYER } from "./constants";
-import {Pair} from "@uniswap/v2-sdk";
+import { DEFAULT_POOL_DEPLOYER } from './constants'
+import { Pair } from '@uniswap/v2-sdk'
 
 const sqrtRatioX96 = encodeSqrtRatioX96(1, 1)
 const liquidity = 1_000_000
@@ -23,18 +23,28 @@ export const makePair = async (alice: SignerWithAddress, token0: Token, token1: 
 // Algebra integral
 export const integralMakePool = (token0: Token, token1: Token, liquidity: number) => {
   const feeTier = integralGetFeeTier(token0.address, token1.address)
-  return new IntegralPool(token0, token1, feeTier, sqrtRatioX96, DEFAULT_POOL_DEPLOYER, liquidity, TickMath.getTickAtSqrtRatio(sqrtRatioX96), getTickSpacing(token0.address, token1.address), [
-    {
-      index: nearestUsableTick(TickMath.MIN_TICK, getTickSpacing(token0.address, token1.address)),
-      liquidityNet: liquidity,
-      liquidityGross: liquidity,
-    },
-    {
-      index: nearestUsableTick(TickMath.MAX_TICK, getTickSpacing(token0.address, token1.address)),
-      liquidityNet: -liquidity,
-      liquidityGross: liquidity,
-    },
-  ])
+  return new IntegralPool(
+    token0,
+    token1,
+    feeTier,
+    sqrtRatioX96,
+    DEFAULT_POOL_DEPLOYER,
+    liquidity,
+    TickMath.getTickAtSqrtRatio(sqrtRatioX96),
+    getTickSpacing(token0.address, token1.address),
+    [
+      {
+        index: nearestUsableTick(TickMath.MIN_TICK, getTickSpacing(token0.address, token1.address)),
+        liquidityNet: liquidity,
+        liquidityGross: liquidity,
+      },
+      {
+        index: nearestUsableTick(TickMath.MAX_TICK, getTickSpacing(token0.address, token1.address)),
+        liquidityNet: -liquidity,
+        liquidityGross: liquidity,
+      },
+    ]
+  )
 }
 
 export function integralGetFeeTier(tokenA: string, tokenB: string): number {
@@ -50,32 +60,40 @@ export function integralGetFeeTier(tokenA: string, tokenB: string): number {
 }
 
 export function getTickSpacing(tokenA: string, tokenB: string): number {
-    const [token0, token1] = tokenA < tokenB ? [tokenA, tokenB] : [tokenB, tokenA]
+  const [token0, token1] = tokenA < tokenB ? [tokenA, tokenB] : [tokenB, tokenA]
 
-    if (token0 == MAINNET_DAI.address && token1 == MAINNET_WETH.address) return 60
-    if (token0 == MAINNET_USDC.address && token1 == MAINNET_WETH.address) return 30
-    if (token0 == MAINNET_WETH.address && token1 == MAINNET_USDT.address) return 30
-    if (token0 == MAINNET_DAI.address && token1 == MAINNET_USDC.address) return 1
-    if (token0 == MAINNET_DAI.address && token1 == MAINNET_USDT.address) return 1
-    if (token0 == MAINNET_USDC.address && token1 == MAINNET_USDT.address) return 1
-    else return 60
+  if (token0 == MAINNET_DAI.address && token1 == MAINNET_WETH.address) return 60
+  if (token0 == MAINNET_USDC.address && token1 == MAINNET_WETH.address) return 30
+  if (token0 == MAINNET_WETH.address && token1 == MAINNET_USDT.address) return 30
+  if (token0 == MAINNET_DAI.address && token1 == MAINNET_USDC.address) return 1
+  if (token0 == MAINNET_DAI.address && token1 == MAINNET_USDT.address) return 1
+  if (token0 == MAINNET_USDC.address && token1 == MAINNET_USDT.address) return 1
+  else return 60
 }
 
 // Uniswap V3
 export const makePool = (token0: Token, token1: Token, liquidity: number) => {
   const feeTier = uniswapGetFeeTier(token0.address, token1.address)
-  return new UniswapV3Pool(token0, token1, feeTier, sqrtRatioX96, liquidity, TickMath.getTickAtSqrtRatio(sqrtRatioX96), [
-    {
-      index: nearestUsableTick(TickMath.MIN_TICK, TICK_SPACINGS[feeTier]),
-      liquidityNet: liquidity,
-      liquidityGross: liquidity,
-    },
-    {
-      index: nearestUsableTick(TickMath.MAX_TICK, TICK_SPACINGS[feeTier]),
-      liquidityNet: -liquidity,
-      liquidityGross: liquidity,
-    },
-  ])
+  return new UniswapV3Pool(
+    token0,
+    token1,
+    feeTier,
+    sqrtRatioX96,
+    liquidity,
+    TickMath.getTickAtSqrtRatio(sqrtRatioX96),
+    [
+      {
+        index: nearestUsableTick(TickMath.MIN_TICK, TICK_SPACINGS[feeTier]),
+        liquidityNet: liquidity,
+        liquidityGross: liquidity,
+      },
+      {
+        index: nearestUsableTick(TickMath.MAX_TICK, TICK_SPACINGS[feeTier]),
+        liquidityNet: -liquidity,
+        liquidityGross: liquidity,
+      },
+    ]
+  )
 }
 
 export function uniswapGetFeeTier(tokenA: string, tokenB: string): FeeAmount {

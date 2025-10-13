@@ -3,17 +3,17 @@ import { expect } from './shared/expect'
 import { BigNumber, BigNumberish } from 'ethers'
 import { IPermit2, UniversalRouter } from '../../typechain'
 import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
-import {resetFork, BASE_WETH, BASE_USDC, BASE_DAI, PERMIT2, BASE_DAI_WHALE} from './shared/mainnetForkHelpers'
+import { resetFork, BASE_WETH, BASE_USDC, BASE_DAI, PERMIT2, BASE_DAI_WHALE } from './shared/mainnetForkHelpers'
 import {
-    ADDRESS_THIS,
-    BASE_ALICE_ADDRESS,
-    ZERO_ADDRESS,
-    DEADLINE,
-    MAX_UINT,
-    MAX_UINT160,
-    MSG_SENDER,
-    SOURCE_MSG_SENDER,
-    SOURCE_ROUTER,
+  ADDRESS_THIS,
+  BASE_ALICE_ADDRESS,
+  ZERO_ADDRESS,
+  DEADLINE,
+  MAX_UINT,
+  MAX_UINT160,
+  MSG_SENDER,
+  SOURCE_MSG_SENDER,
+  SOURCE_ROUTER,
 } from './shared/constants'
 import { expandTo18DecimalsBN, expandTo6DecimalsBN } from './shared/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -44,10 +44,7 @@ describe('Algebra Integral Tests:', () => {
   const amountOutUSD: BigNumber = expandTo6DecimalsBN(4400)
 
   beforeEach(async () => {
-    await resetFork(
-      36274285,
-      `https://rpc.ankr.com/base/${process.env.ANKR_API_KEY}`
-    )
+    await resetFork(36274285, `https://rpc.ankr.com/base/${process.env.ANKR_API_KEY}`)
     await hre.network.provider.request({
       method: 'hardhat_impersonateAccount',
       params: [BASE_ALICE_ADDRESS],
@@ -96,7 +93,7 @@ describe('Algebra Integral Tests:', () => {
       recipient: undefined,
       tokens: [BASE_USDC.address, BASE_WETH.address],
       tokenSource: SOURCE_MSG_SENDER,
-      amountIn: amountInUSD
+      amountIn: amountInUSD,
     }
   ) => {
     const path = encodePathExactInputIntegral(opts.tokens ?? [BASE_USDC.address, BASE_WETH.address])
@@ -235,28 +232,27 @@ describe('Algebra Integral Tests:', () => {
       const tokenOutContract = new ethers.Contract(token_out, TOKEN_ABI, bob)
 
       const amountOutMin: number = 0.004 * 10 ** 8
-      addV3ExactInTrades(
-        planner,
-        1,
-        amountOutMin,
-        {
-          recipient: MSG_SENDER,
-          tokens: [BASE_USDC.address, BASE_WETH.address, token_out],
-          tokenSource: SOURCE_MSG_SENDER
-        }
-      )
+      addV3ExactInTrades(planner, 1, amountOutMin, {
+        recipient: MSG_SENDER,
+        tokens: [BASE_USDC.address, BASE_WETH.address, token_out],
+        tokenSource: SOURCE_MSG_SENDER,
+      })
 
-      const {
-        daiBalanceBefore,
-        daiBalanceAfter,
-        wethBalanceBefore,
-        wethBalanceAfter,
-      } = await executeRouter(planner, bob, router, wethContract, usdcContract, daiContract, undefined, DEX.ALGEBRA_INTEGRAL)
+      const { daiBalanceBefore, daiBalanceAfter, wethBalanceBefore, wethBalanceAfter } = await executeRouter(
+        planner,
+        bob,
+        router,
+        wethContract,
+        usdcContract,
+        daiContract,
+        undefined,
+        DEX.ALGEBRA_INTEGRAL
+      )
 
       expect(daiBalanceBefore.sub(amountInUSD)).to.eq(daiBalanceAfter)
       expect(wethBalanceAfter).to.eq(wethBalanceBefore)
 
-      const tokenOutResult = await tokenOutContract.balanceOf(bob.address);
+      const tokenOutResult = await tokenOutContract.balanceOf(bob.address)
 
       expect(tokenOutResult).to.be.gte(amountOutMin)
     })
@@ -266,7 +262,13 @@ describe('Algebra Integral Tests:', () => {
       const tokens = [BASE_USDC.address, BASE_WETH.address]
       const path = encodePathExactOutputIntegral(tokens)
 
-      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [MSG_SENDER, amountOutETH, amountInMaxUSD, path, SOURCE_MSG_SENDER])
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
+        MSG_SENDER,
+        amountOutETH,
+        amountInMaxUSD,
+        path,
+        SOURCE_MSG_SENDER,
+      ])
 
       const { wethBalanceBefore, wethBalanceAfter, v3SwapEventArgs } = await executeRouter(
         planner,
@@ -289,7 +291,13 @@ describe('Algebra Integral Tests:', () => {
       const path = encodePathExactOutputIntegral(tokens)
       const amountInMax = expandTo18DecimalsBN(5000)
 
-      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [MSG_SENDER, amountOutETH, amountInMax, path, SOURCE_MSG_SENDER])
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
+        MSG_SENDER,
+        amountOutETH,
+        amountInMax,
+        path,
+        SOURCE_MSG_SENDER,
+      ])
       const { commands, inputs } = planner
 
       const balanceWethBefore = await wethContract.balanceOf(bob.address)
@@ -302,7 +310,7 @@ describe('Algebra Integral Tests:', () => {
   describe('ERC20 --> ETH', () => {
     it('completes a V3 exactIn swap', async () => {
       const amountOutMin: BigNumber = expandTo18DecimalsBN(0.1)
-      addV3ExactInTrades(planner, 1, amountOutMin, {recipient: ADDRESS_THIS})
+      addV3ExactInTrades(planner, 1, amountOutMin, { recipient: ADDRESS_THIS })
       planner.addCommand(CommandType.UNWRAP_WETH, [MSG_SENDER, 0])
 
       const { ethBalanceBefore, ethBalanceAfter, v3SwapEventArgs, gasSpent } = await executeRouter(
@@ -326,7 +334,13 @@ describe('Algebra Integral Tests:', () => {
       const tokens = [BASE_USDC.address, BASE_WETH.address]
       const path = encodePathExactOutputIntegral(tokens)
 
-      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [ADDRESS_THIS, amountOutETH, amountInMaxUSD, path, SOURCE_MSG_SENDER])
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
+        ADDRESS_THIS,
+        amountOutETH,
+        amountInMaxUSD,
+        path,
+        SOURCE_MSG_SENDER,
+      ])
       planner.addCommand(CommandType.UNWRAP_WETH, [MSG_SENDER, amountOutETH])
 
       const { ethBalanceBefore, ethBalanceAfter, gasSpent } = await executeRouter(
@@ -354,7 +368,7 @@ describe('Algebra Integral Tests:', () => {
         recipient: MSG_SENDER,
         tokens,
         tokenSource: SOURCE_ROUTER,
-        amountIn: amountInETH
+        amountIn: amountInETH,
       })
 
       const { ethBalanceBefore, ethBalanceAfter, daiBalanceBefore, daiBalanceAfter, gasSpent } = await executeRouter(
@@ -377,11 +391,26 @@ describe('Algebra Integral Tests:', () => {
       const path = encodePathExactOutputIntegral(tokens)
 
       planner.addCommand(CommandType.WRAP_ETH, [ADDRESS_THIS, amountInMaxETH])
-      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [MSG_SENDER, amountOutUSD, amountInMaxETH, path, SOURCE_ROUTER])
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
+        MSG_SENDER,
+        amountOutUSD,
+        amountInMaxETH,
+        path,
+        SOURCE_ROUTER,
+      ])
       planner.addCommand(CommandType.UNWRAP_WETH, [MSG_SENDER, 0])
 
       const { ethBalanceBefore, ethBalanceAfter, daiBalanceBefore, daiBalanceAfter, gasSpent, v3SwapEventArgs } =
-        await executeRouter(planner, bob, router, wethContract, usdcContract, daiContract, amountInMaxETH, DEX.ALGEBRA_INTEGRAL)
+        await executeRouter(
+          planner,
+          bob,
+          router,
+          wethContract,
+          usdcContract,
+          daiContract,
+          amountInMaxETH,
+          DEX.ALGEBRA_INTEGRAL
+        )
       // amount1 is dai because DAI.address > WETH.address
       const { amount1: daiTraded, amount0: wethTraded } = v3SwapEventArgs!
 

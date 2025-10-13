@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.17;
 
-import {INonfungiblePositionManager as IIntegralNonfungiblePositionManager} from '@cryptoalgebra/integral-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
+import {INonfungiblePositionManager as IIntegralNonfungiblePositionManager} from
+    '@cryptoalgebra/integral-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
 
 /// @title Creates and initializes V3 Pools
 /// @notice Provides a method for creating and initializing a pool, if necessary, for bundling with other methods that
@@ -14,16 +15,12 @@ interface IUniswapPoolInitializer {
     /// @param fee The fee amount of the v3 pool for the specified token pair
     /// @param sqrtPriceX96 The initial square root price of the pool as a Q64.96 value
     /// @return pool Returns the pool address based on the pair of tokens and fee, will return the newly created pool address if necessary
-    function createAndInitializePoolIfNecessary(
-        address token0,
-        address token1,
-        uint24 fee,
-        uint160 sqrtPriceX96
-    ) external payable returns (address pool);
+    function createAndInitializePoolIfNecessary(address token0, address token1, uint24 fee, uint160 sqrtPriceX96)
+        external
+        payable
+        returns (address pool);
 }
 
 // this contract only exists to pull PositionManager and PoolManager into the hardhat build pipeline
 // so that typechain artifacts are generated for it
-abstract contract ImportsForTypechain is IIntegralNonfungiblePositionManager, IUniswapPoolInitializer{
-
-}
+abstract contract ImportsForTypechain is IIntegralNonfungiblePositionManager, IUniswapPoolInitializer {}

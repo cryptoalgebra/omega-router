@@ -10,14 +10,11 @@ import {
   INTEGRAL_NFT_POSITION_MANAGER_MAINNET,
   INTEGRAL_POOL_DEPLOYER,
   INTEGRAL_FACTORY_MAINNET,
-  INTEGRAL_INIT_CODE_HASH_MAINNET
+  INTEGRAL_INIT_CODE_HASH_MAINNET,
 } from './constants'
-import {MAINNET_WETH} from "./mainnetForkHelpers";
+import { MAINNET_WETH } from './mainnetForkHelpers'
 
-export async function deployRouter(
-    mockReentrantWETH?: string
-): Promise<UniversalRouter> {
-
+export async function deployRouter(mockReentrantWETH?: string): Promise<UniversalRouter> {
   const routerParameters = {
     permit2: PERMIT2_ADDRESS,
     weth: mockReentrantWETH ?? MAINNET_WETH.address,
@@ -27,8 +24,8 @@ export async function deployRouter(
     uniswapPoolInitCodeHash: UNISWAP_V3_INIT_CODE_HASH_MAINNET,
     integralFactory: INTEGRAL_FACTORY_MAINNET,
     integralPoolDeployer: INTEGRAL_POOL_DEPLOYER,
-    integralPoolInitCodeHash: INTEGRAL_INIT_CODE_HASH_MAINNET,
     integralPosManager: INTEGRAL_NFT_POSITION_MANAGER_MAINNET,
+    integralPoolInitCodeHash: INTEGRAL_INIT_CODE_HASH_MAINNET,
   }
 
   const routerFactory = await ethers.getContractFactory('UniversalRouter')

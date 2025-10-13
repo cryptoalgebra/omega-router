@@ -32,9 +32,9 @@ export default {
         url: `https://rpc.ankr.com/base/${process.env.ANKR_API_KEY}`,
         blockNumber: 36274285,
       },
-    accounts: {
-        mnemonic: "your custom mnemonic phrase goes here your custom mnemonic phrase goes here",
-    },
+      accounts: {
+        mnemonic: 'your custom mnemonic phrase goes here your custom mnemonic phrase goes here',
+      },
     },
     mainnet: {
       url: `https://rpc.ankr.com/eth/${process.env.ANKR_API_KEY}`,

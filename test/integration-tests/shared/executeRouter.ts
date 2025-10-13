@@ -1,6 +1,12 @@
 import type { Contract } from '@ethersproject/contracts'
 import { TransactionReceipt } from '@ethersproject/abstract-provider'
-import {ALGEBRA_INTEGRAL_EVENTS, parseEvents, UNISWAP_V3_EVENTS, V2_EVENTS} from './parseEvents'
+import {
+  ALGEBRA_INTEGRAL_EVENTS,
+  ALGEBRA_INTEGRAL_POSITION_EVENTS,
+  parseEvents,
+  UNISWAP_V3_EVENTS,
+  V2_EVENTS,
+} from './parseEvents'
 import { BigNumber, BigNumberish } from 'ethers'
 import { UniversalRouter } from '../../../typechain'
 import { DEADLINE } from './constants'
@@ -21,6 +27,11 @@ type V3SwapEventArgs = {
   amount1: BigNumber
 }
 
+type IntegralPositionEventArgs = {
+  amount0: BigNumber
+  amount1: BigNumber
+}
+
 type ExecutionParams = {
   wethBalanceBefore: BigNumber
   wethBalanceAfter: BigNumber
@@ -32,13 +43,14 @@ type ExecutionParams = {
   ethBalanceAfter: BigNumber
   v2SwapEventArgs: V2SwapEventArgs | undefined
   v3SwapEventArgs: V3SwapEventArgs | undefined
+  integralPosEventArgs: IntegralPositionEventArgs | undefined
   receipt: TransactionReceipt
   gasSpent: BigNumber
 }
 
 export enum DEX {
   UNI_V3,
-  ALGEBRA_INTEGRAL
+  ALGEBRA_INTEGRAL,
 }
 
 export async function executeRouter(
@@ -73,6 +85,9 @@ export async function executeRouter(
   })()
   const v2SwapEventArgs = parseEvents(V2_EVENTS, receipt)[0]?.args as unknown as V2SwapEventArgs
 
+  const integralPosEventArgs = parseEvents(ALGEBRA_INTEGRAL_POSITION_EVENTS, receipt)[0]
+    ?.args as unknown as IntegralPositionEventArgs
+
   const ethBalanceAfter: BigNumber = await ethers.provider.getBalance(caller.address)
   const wethBalanceAfter: BigNumber = await wethContract.balanceOf(caller.address)
   const daiBalanceAfter: BigNumber = await daiContract.balanceOf(caller.address)
@@ -89,6 +104,7 @@ export async function executeRouter(
     ethBalanceAfter,
     v3SwapEventArgs,
     v2SwapEventArgs,
+    integralPosEventArgs,
     receipt,
     gasSpent,
   }

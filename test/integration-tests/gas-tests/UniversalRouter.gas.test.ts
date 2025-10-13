@@ -1,7 +1,7 @@
 import { UniversalRouter } from '../../../typechain'
 import { expect } from '../shared/expect'
 import { MAINNET_ALICE_ADDRESS } from '../shared/constants'
-import { resetFork, } from '../shared/mainnetForkHelpers'
+import { resetFork } from '../shared/mainnetForkHelpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import hre from 'hardhat'
 import deployUniversalRouter from '../shared/deployUniversalRouter'

@@ -34,7 +34,11 @@ describe('Check Ownership', () => {
     })
 
     it('passes with sufficient balance', async () => {
-      planner.addCommand(CommandType.BALANCE_CHECK_ERC20, [MAINNET_ALICE_ADDRESS, MAINNET_USDC.address, aliceUSDCBalance])
+      planner.addCommand(CommandType.BALANCE_CHECK_ERC20, [
+        MAINNET_ALICE_ADDRESS,
+        MAINNET_USDC.address,
+        aliceUSDCBalance,
+      ])
 
       const { commands, inputs } = planner
       await expect(router['execute(bytes,bytes[],uint256)'](commands, inputs, DEADLINE)).to.not.be.reverted

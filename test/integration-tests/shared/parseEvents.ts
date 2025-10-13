@@ -15,6 +15,10 @@ export const ALGEBRA_INTEGRAL_EVENTS = new Interface([
   'event Swap( address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 price, uint128 liquidity, int24 tick, uint24 overrideFee, uint24 pluginFee)',
 ])
 
+export const ALGEBRA_INTEGRAL_POSITION_EVENTS = new Interface([
+  'event IncreaseLiquidity(uint256 indexed tokenId,uint128 liquidityDesired,uint128 actualLiquidity,uint256 amount0,uint256 amount1,address pool)',
+])
+
 export function parseEvents(iface: Interface, receipt: TransactionReceipt): (LogDescription | undefined)[] {
   return receipt.logs
     .map((log: { topics: Array<string>; data: string }) => {

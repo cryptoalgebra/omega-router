@@ -3,20 +3,17 @@ import { expect } from './shared/expect'
 import { BigNumber } from 'ethers'
 import { IPermit2, UniversalRouter } from '../../typechain'
 import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
-import { abi as ERC4626_ABI } from '../../artifacts/@openzeppelin/contracts/interfaces/IERC4626.sol/IERC4626.json';
-import { resetFork,
+import { abi as ERC4626_ABI } from '../../artifacts/@openzeppelin/contracts/interfaces/IERC4626.sol/IERC4626.json'
+import {
+  resetFork,
   MAINNET_WETH,
   MAINNET_DAI,
   MAINNET_USDC,
   MAINNET_WA_USDC,
   PERMIT2,
-  MAINNET_USDC_WHALE
+  MAINNET_USDC_WHALE,
 } from './shared/mainnetForkHelpers'
-import {
-  DEADLINE,
-  MAX_UINT,
-  MAX_UINT160, MSG_SENDER,
-} from './shared/constants'
+import { DEADLINE, MAX_UINT, MAX_UINT160, MSG_SENDER } from './shared/constants'
 import { expandTo6DecimalsBN } from './shared/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import deployUniversalRouter from './shared/deployUniversalRouter'
@@ -39,18 +36,18 @@ describe('ERC4626 Wrap/Unwrap Tests:', () => {
     await resetFork(23377219)
 
     bob = (await ethers.getSigners())[1]
-    daiContract = new ethers.Contract( MAINNET_DAI.address, TOKEN_ABI, bob)
-    wethContract = new ethers.Contract( MAINNET_WETH.address, TOKEN_ABI, bob)
-    usdcContract = new ethers.Contract( MAINNET_USDC.address, TOKEN_ABI, bob)
+    daiContract = new ethers.Contract(MAINNET_DAI.address, TOKEN_ABI, bob)
+    wethContract = new ethers.Contract(MAINNET_WETH.address, TOKEN_ABI, bob)
+    usdcContract = new ethers.Contract(MAINNET_USDC.address, TOKEN_ABI, bob)
     waUsdcContract = new ethers.Contract(MAINNET_WA_USDC.address, ERC4626_ABI, bob)
     permit2 = PERMIT2.connect(bob) as IPermit2
     router = (await deployUniversalRouter(bob.address)) as UniversalRouter
     planner = new RoutePlanner()
 
-    const usdcWhale = await ethers.getSigner( MAINNET_USDC_WHALE)
+    const usdcWhale = await ethers.getSigner(MAINNET_USDC_WHALE)
     await hre.network.provider.request({
       method: 'hardhat_impersonateAccount',
-      params: [ MAINNET_USDC_WHALE],
+      params: [MAINNET_USDC_WHALE],
     })
     await usdcContract.connect(usdcWhale).transfer(bob.address, expandTo6DecimalsBN(100000))
 
@@ -61,9 +58,9 @@ describe('ERC4626 Wrap/Unwrap Tests:', () => {
     await waUsdcContract.connect(bob).approve(permit2.address, MAX_UINT)
 
     // for these tests Bob gives the router max approval on permit2
-    await permit2.approve( MAINNET_DAI.address, router.address, MAX_UINT160, DEADLINE)
-    await permit2.approve( MAINNET_USDC.address, router.address, MAX_UINT160, DEADLINE)
-    await permit2.approve( MAINNET_WETH.address, router.address, MAX_UINT160, DEADLINE)
+    await permit2.approve(MAINNET_DAI.address, router.address, MAX_UINT160, DEADLINE)
+    await permit2.approve(MAINNET_USDC.address, router.address, MAX_UINT160, DEADLINE)
+    await permit2.approve(MAINNET_WETH.address, router.address, MAX_UINT160, DEADLINE)
     await permit2.approve(MAINNET_WA_USDC.address, router.address, MAX_UINT160, DEADLINE)
   })
 
@@ -79,16 +76,9 @@ describe('ERC4626 Wrap/Unwrap Tests:', () => {
       usdcContract.address,
       MSG_SENDER,
       amountInUSDC,
-      expectedAmountOutWaUSDC
+      expectedAmountOutWaUSDC,
     ])
-    await executeRouter(
-      planner,
-      bob,
-      router,
-      wethContract,
-      daiContract,
-      usdcContract
-    )
+    await executeRouter(planner, bob, router, wethContract, daiContract, usdcContract)
 
     const receivedWaUSDC = await waUsdcContract.balanceOf(bob.address)
     expect(receivedWaUSDC).to.be.eq(expectedAmountOutWaUSDC)
@@ -109,9 +99,9 @@ describe('ERC4626 Wrap/Unwrap Tests:', () => {
       waUsdcContract.address,
       MSG_SENDER,
       amountInWaUSDC,
-      expectedAmountOutUSDC
+      expectedAmountOutUSDC,
     ])
-    const {usdcBalanceBefore, usdcBalanceAfter} = await executeRouter(
+    const { usdcBalanceBefore, usdcBalanceAfter } = await executeRouter(
       planner,
       bob,
       router,

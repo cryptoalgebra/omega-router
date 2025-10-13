@@ -37,7 +37,7 @@ library CalldataDecoder {
             // The offset of the `_arg`-th element is `32 * arg`, which stores the offset of the length pointer.
             // shl(5, x) is equivalent to mul(32, x)
             let lengthPtr :=
-            add(_bytes.offset, and(calldataload(add(_bytes.offset, shl(5, _arg))), OFFSET_OR_LENGTH_MASK))
+                add(_bytes.offset, and(calldataload(add(_bytes.offset, shl(5, _arg))), OFFSET_OR_LENGTH_MASK))
             // the number of bytes in the bytes string
             length := and(calldataload(lengthPtr), OFFSET_OR_LENGTH_MASK)
             // the offset where the bytes string begins
@@ -62,9 +62,9 @@ library CalldataDecoder {
     /// @return length Length of the array
     /// @return offset Pointer to the data part of the array
     function toLengthOffset(bytes calldata _bytes, uint256 _arg)
-    internal
-    pure
-    returns (uint256 length, uint256 offset)
+        internal
+        pure
+        returns (uint256 length, uint256 offset)
     {
         uint256 relativeOffset;
         assembly {
@@ -91,9 +91,9 @@ library CalldataDecoder {
 
     /// @dev equivalent to: abi.decode(params, (bytes, bytes[])) in calldata (requires strict abi encoding)
     function decodeActionsRouterParams(bytes calldata _bytes)
-    internal
-    pure
-    returns (bytes calldata actions, bytes[] calldata params)
+        internal
+        pure
+        returns (bytes calldata actions, bytes[] calldata params)
     {
         assembly ("memory-safe") {
             // Strict encoding requires that the data begin with:
@@ -126,7 +126,7 @@ library CalldataDecoder {
                 invalidData := or(invalidData, xor(itemLengthOffset, expectedOffset))
                 let itemLengthPointer := add(params.offset, itemLengthOffset)
                 let length :=
-                add(and(add(calldataload(itemLengthPointer), 0x1f), OFFSET_OR_LENGTH_MASK_AND_WORD_ALIGN), 0x20)
+                    add(and(add(calldataload(itemLengthPointer), 0x1f), OFFSET_OR_LENGTH_MASK_AND_WORD_ALIGN), 0x20)
                 expectedOffset := add(expectedOffset, length)
             }
 

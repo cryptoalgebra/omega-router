@@ -116,9 +116,7 @@ describe('UniversalRouter', () => {
       const sweepCalldata = routerInterface.encodeFunctionData('execute(bytes,bytes[])', [commands, inputs])
 
       const reentrantWETH = await (await ethers.getContractFactory('ReenteringWETH')).deploy()
-      router = (await deployUniversalRouter(reentrantWETH.address)).connect(
-        alice
-      ) as UniversalRouter
+      router = (await deployUniversalRouter(reentrantWETH.address)).connect(alice) as UniversalRouter
       await reentrantWETH.setParameters(router.address, sweepCalldata)
 
       planner = new RoutePlanner()

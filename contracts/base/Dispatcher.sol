@@ -4,21 +4,32 @@ pragma solidity ^0.8.24;
 import {V2SwapRouter} from '../modules/uniswap/v2/V2SwapRouter.sol';
 import {V3SwapRouter} from '../modules/uniswap/v3/V3SwapRouter.sol';
 import {IntegralSwapRouter} from '../modules/algebra/integral/IntegralSwapRouter.sol';
-import {IntegralBytesLib} from "../modules/algebra/integral/IntegralBytesLib.sol";
+import {IntegralPositions} from '../modules/algebra/integral/IntegralPositions.sol';
+import {IntegralBytesLib} from '../modules/algebra/integral/IntegralBytesLib.sol';
 import {PaymentsImmutables} from '../modules/PaymentsImmutables.sol';
-import {ERC4626WrapUnwrap} from "../modules/ERC4626WrapUnwrap.sol";
+import {ERC4626WrapUnwrap} from '../modules/ERC4626WrapUnwrap.sol';
 import {Payments} from '../modules/Payments.sol';
 import {PaymentsImmutables} from '../modules/PaymentsImmutables.sol';
 import {Commands} from '../libraries/Commands.sol';
 import {Lock} from './Lock.sol';
 import {ERC20} from 'solmate/src/tokens/ERC20.sol';
 import {IAllowanceTransfer} from 'permit2/src/interfaces/IAllowanceTransfer.sol';
+import {INonfungiblePositionManager} from
+    '@cryptoalgebra/integral-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
 import {ActionConstants} from '../libraries/ActionConstants.sol';
 import {CalldataDecoder} from '../libraries/CalldataDecoder.sol';
 
 /// @title Decodes and Executes Commands
 /// @notice Called by the UniversalRouter contract to efficiently decode and execute a singular command
-abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter, V2SwapRouter, ERC4626WrapUnwrap {
+abstract contract Dispatcher is
+    Payments,
+    Lock,
+    IntegralSwapRouter,
+    IntegralPositions,
+    V3SwapRouter,
+    V2SwapRouter,
+    ERC4626WrapUnwrap
+{
     using IntegralBytesLib for bytes;
     using CalldataDecoder for bytes;
 
@@ -283,8 +294,7 @@ abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter
                     bytes calldata path = inputs.toBytes(3);
                     address payer = payerIsUser ? msgSender() : address(this);
                     v3SwapExactInput(map(recipient), amountIn, amountOutMin, path, payer);
-                }
-                else if (command == Commands.UNISWAP_V3_SWAP_EXACT_OUT) {
+                } else if (command == Commands.UNISWAP_V3_SWAP_EXACT_OUT) {
                     // equivalent: abi.decode(inputs, (address, uint256, uint256, bytes, bool))
                     address recipient;
                     uint256 amountOut;
@@ -300,8 +310,28 @@ abstract contract Dispatcher is Payments, Lock, IntegralSwapRouter, V3SwapRouter
                     bytes calldata path = inputs.toBytes(3);
                     address payer = payerIsUser ? msgSender() : address(this);
                     v3SwapExactOutput(map(recipient), amountOut, amountInMax, path, payer);
-                }
-                else {
+                } else if (command == Commands.INTEGRAL_MINT) {
+                    // equivalent: abi.decode(inputs, ((address, address, address, int24, int24, uint256, uint256, uint256, uint256, address, uint256)))
+                    INonfungiblePositionManager.MintParams memory params;
+
+                    assembly {
+                        mstore(params, calldataload(inputs.offset)) // token0
+                        mstore(add(params, 0x20), calldataload(add(inputs.offset, 0x20))) // token1
+                        mstore(add(params, 0x40), calldataload(add(inputs.offset, 0x40))) // deployer
+                        mstore(add(params, 0x60), calldataload(add(inputs.offset, 0x60))) // tickLower
+                        mstore(add(params, 0x80), calldataload(add(inputs.offset, 0x80))) // tickUpper
+                        mstore(add(params, 0xa0), calldataload(add(inputs.offset, 0xa0))) // amount0Desired
+                        mstore(add(params, 0xc0), calldataload(add(inputs.offset, 0xc0))) // amount1Desired
+                        mstore(add(params, 0xe0), calldataload(add(inputs.offset, 0xe0))) // amount0Min
+                        mstore(add(params, 0x100), calldataload(add(inputs.offset, 0x100))) // amount1Min
+                        mstore(add(params, 0x120), calldataload(add(inputs.offset, 0x120))) // recipient
+                        mstore(add(params, 0x140), calldataload(add(inputs.offset, 0x140))) // deadline
+                    }
+
+                    params.recipient = map(params.recipient);
+
+                    integralMint(params);
+                } else {
                     // placeholder area for commands 0x15-0x20
                     revert InvalidCommandType(command);
                 }

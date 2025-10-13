@@ -36,13 +36,14 @@ abstract contract DeployUniversalRouter is Script {
         params = RouterParameters({
             permit2: mapUnsupported(params.permit2),
             weth: mapUnsupported(params.weth),
-            v2Factory: mapUnsupported(params.uniswapV2Factory),
-            v3Factory: mapUnsupported(params.uniswapV3Factory),
-            pairInitCodeHash: params.uniswapPairInitCodeHash,
-            poolInitCodeHash: params.integralPoolInitCodeHash,
-            v4PoolManager: mapUnsupported(params.v4PoolManager),
-            v3NFTPositionManager: mapUnsupported(params.integralPosManager),
-            v4PositionManager: mapUnsupported(params.v4PositionManager)
+            uniswapV2Factory: mapUnsupported(params.uniswapV2Factory),
+            uniswapV3Factory: mapUnsupported(params.uniswapV3Factory),
+            uniswapPairInitCodeHash: params.uniswapPairInitCodeHash,
+            uniswapPoolInitCodeHash: params.uniswapPoolInitCodeHash,
+            integralFactory: mapUnsupported(params.integralFactory),
+            integralPoolDeployer: mapUnsupported(params.integralPoolDeployer),
+            integralPosManager: mapUnsupported(params.integralPosManager),
+            integralPoolInitCodeHash: params.integralPoolInitCodeHash
         });
 
         logParams();
@@ -55,11 +56,17 @@ abstract contract DeployUniversalRouter is Script {
     function logParams() internal view {
         console2.log('permit2:', params.permit2);
         console2.log('weth:', params.weth);
-        console2.log('v2Factory:', params.uniswapV2Factory);
-        console2.log('v3Factory:', params.uniswapV3Factory);
-        console2.log('v4PoolManager:', params.v4PoolManager);
-        console2.log('v3NFTPositionManager:', params.integralPosManager);
-        console2.log('v4PositionManager:', params.v4PositionManager);
+        console2.log('uniswapV2Factory:', params.uniswapV2Factory);
+        console2.log('uniswapV3Factory:', params.uniswapV3Factory);
+        console2.log('uniswapPairInitCodeHash:');
+        console2.logBytes32(params.uniswapPairInitCodeHash);
+        console2.log('uniswapPoolInitCodeHash:');
+        console2.logBytes32(params.uniswapPoolInitCodeHash);
+        console2.log('integralFactory:', params.integralFactory);
+        console2.log('integralPoolDeployer:', params.integralPoolDeployer);
+        console2.log('integralPosManager:', params.integralPosManager);
+        console2.log('integralPoolInitCodeHash:');
+        console2.logBytes32(params.integralPoolInitCodeHash);
     }
 
     function mapUnsupported(address protocol) internal view returns (address) {

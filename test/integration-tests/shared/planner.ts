@@ -27,7 +27,7 @@ export enum CommandType {
   UNISWAP_V3_SWAP_EXACT_IN = 0x10,
   UNISWAP_V3_SWAP_EXACT_OUT = 0x11,
   V3_POSITION_MANAGER_CALL = 0x12,
-  V4_INITIALIZE_POOL = 0x13,
+  INTEGRAL_MINT = 0x13,
   V4_POSITION_MANAGER_CALL = 0x14,
 
   EXECUTE_SUB_PLAN = 0x21,
@@ -44,7 +44,8 @@ const REVERTIBLE_COMMANDS = new Set<CommandType>([
 const PERMIT_STRUCT =
   '((address token,uint160 amount,uint48 expiration,uint48 nonce) details, address spender, uint256 sigDeadline)'
 
-const POOL_KEY_STRUCT = '(address currency0,address currency1,uint24 fee,int24 tickSpacing,address hooks)'
+const MINT_PARAMS =
+  '(address token0,address token1,address deployer,int24 tickLower,int24 tickUpper,uint256 amount0Desired,uint256 amount1Desired,uint256 amount0Min,uint256 amount1Min,address recipient,uint256 deadline)'
 
 const PERMIT_BATCH_STRUCT =
   '((address token,uint160 amount,uint48 expiration,uint48 nonce)[] details, address spender, uint256 sigDeadline)'
@@ -81,7 +82,7 @@ const ABI_DEFINITION: { [key in CommandType]: string[] } = {
   [CommandType.UNISWAP_V3_SWAP_EXACT_IN]: ['address', 'uint256', 'uint256', 'bytes', 'bool'],
   [CommandType.UNISWAP_V3_SWAP_EXACT_OUT]: ['address', 'uint256', 'uint256', 'bytes', 'bool'],
   [CommandType.V3_POSITION_MANAGER_CALL]: ['bytes'],
-  [CommandType.V4_INITIALIZE_POOL]: [POOL_KEY_STRUCT, 'uint160'],
+  [CommandType.INTEGRAL_MINT]: [MINT_PARAMS],
   [CommandType.V4_POSITION_MANAGER_CALL]: ['bytes'],
 }
 
@@ -118,10 +119,7 @@ export type RouterCommand = {
 }
 
 export function createCommand(type: CommandType, parameters: any[]): RouterCommand {
-  if (
-    type === CommandType.V3_POSITION_MANAGER_CALL ||
-    type === CommandType.V4_POSITION_MANAGER_CALL
-  ) {
+  if (type === CommandType.V3_POSITION_MANAGER_CALL || type === CommandType.V4_POSITION_MANAGER_CALL) {
     return { type, encodedInput: parameters[0] }
   } else {
     const encodedInput = defaultAbiCoder.encode(ABI_DEFINITION[type], parameters)

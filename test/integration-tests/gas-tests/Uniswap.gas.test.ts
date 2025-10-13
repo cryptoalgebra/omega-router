@@ -20,7 +20,15 @@ import {
 import { BigNumber, BigNumberish } from 'ethers'
 import { IPermit2, UniversalRouter } from '../../../typechain'
 import { abi as TOKEN_ABI } from '../../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
-import { approveAndExecuteSwapRouter02, resetFork, MAINNET_WETH, MAINNET_DAI, MAINNET_USDC, MAINNET_USDT, PERMIT2 } from '../shared/mainnetForkHelpers'
+import {
+  approveAndExecuteSwapRouter02,
+  resetFork,
+  MAINNET_WETH,
+  MAINNET_DAI,
+  MAINNET_USDC,
+  MAINNET_USDT,
+  PERMIT2,
+} from '../shared/mainnetForkHelpers'
 import {
   ADDRESS_THIS,
   MAINNET_ALICE_ADDRESS,
@@ -411,7 +419,11 @@ describe('Uniswap Gas Tests', () => {
       let v3ExactOutMultihop: Trade<Token, Token, TradeType.EXACT_OUTPUT>
 
       beforeEach(async () => {
-        v3ExactIn = await Trade.fromRoute(new V3RouteSDK([pool_DAI_WETH], MAINNET_DAI, MAINNET_WETH), amountIn, TradeType.EXACT_INPUT)
+        v3ExactIn = await Trade.fromRoute(
+          new V3RouteSDK([pool_DAI_WETH], MAINNET_DAI, MAINNET_WETH),
+          amountIn,
+          TradeType.EXACT_INPUT
+        )
         v3ExactOut = await Trade.fromRoute(
           new V3RouteSDK([pool_DAI_WETH], MAINNET_DAI, MAINNET_WETH),
           amountOut,
@@ -544,7 +556,11 @@ describe('Uniswap Gas Tests', () => {
 
         it('gas: exactIn, one trade, two hops', async () => {
           const amountOutMin: number = 3 * 10 ** 6
-          addV3ExactInTrades(planner, 1, amountOutMin, MSG_SENDER, [MAINNET_DAI.address, MAINNET_WETH.address, MAINNET_USDC.address])
+          addV3ExactInTrades(planner, 1, amountOutMin, MSG_SENDER, [
+            MAINNET_DAI.address,
+            MAINNET_WETH.address,
+            MAINNET_USDC.address,
+          ])
           const { commands, inputs } = planner
 
           await snapshotGasCost(router['execute(bytes,bytes[],uint256)'](commands, inputs, DEADLINE))
@@ -660,7 +676,13 @@ describe('Uniswap Gas Tests', () => {
           const path = encodePathExactOutput(tokens)
 
           planner.addCommand(CommandType.WRAP_ETH, [ADDRESS_THIS, amountInMax])
-          planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_OUT, [MSG_SENDER, amountOut, amountInMax, path, SOURCE_ROUTER])
+          planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_OUT, [
+            MSG_SENDER,
+            amountOut,
+            amountInMax,
+            path,
+            SOURCE_ROUTER,
+          ])
           planner.addCommand(CommandType.UNWRAP_WETH, [MSG_SENDER, 0])
 
           const { commands, inputs } = planner
@@ -741,9 +763,17 @@ describe('Uniswap Gas Tests', () => {
           const minAmountOut2 = expandTo18DecimalsBN(0.0075)
 
           // 1) transfer funds into DAI-USDC and DAI-USDT pairs to trade
-          planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [MAINNET_DAI.address, Pair.getAddress(MAINNET_DAI, MAINNET_USDC), v2AmountIn1])
+          planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [
+            MAINNET_DAI.address,
+            Pair.getAddress(MAINNET_DAI, MAINNET_USDC),
+            v2AmountIn1,
+          ])
 
-          planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [MAINNET_DAI.address, Pair.getAddress(MAINNET_DAI, MAINNET_USDT), v2AmountIn2])
+          planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [
+            MAINNET_DAI.address,
+            Pair.getAddress(MAINNET_DAI, MAINNET_USDT),
+            v2AmountIn2,
+          ])
 
           // 2) trade route1 and return tokens to bob
           planner.addCommand(CommandType.V2_SWAP_EXACT_IN, [MSG_SENDER, 0, minAmountOut1, route1, SOURCE_MSG_SENDER])

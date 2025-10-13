@@ -232,7 +232,13 @@ describe('Uniswap V3 Tests:', () => {
       const tokens = [MAINNET_DAI.address, MAINNET_WETH.address]
       const path = encodePathExactOutput(tokens)
 
-      planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_OUT, [MSG_SENDER, amountOut, amountInMax, path, SOURCE_MSG_SENDER])
+      planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_OUT, [
+        MSG_SENDER,
+        amountOut,
+        amountInMax,
+        path,
+        SOURCE_MSG_SENDER,
+      ])
 
       const { wethBalanceBefore, wethBalanceAfter, v3SwapEventArgs } = await executeRouter(
         planner,
@@ -252,7 +258,13 @@ describe('Uniswap V3 Tests:', () => {
       const tokens = [MAINNET_DAI.address, MAINNET_USDC.address, MAINNET_WETH.address]
       const path = encodePathExactOutput(tokens)
 
-      planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_OUT, [MSG_SENDER, amountOut, amountInMax, path, SOURCE_MSG_SENDER])
+      planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_OUT, [
+        MSG_SENDER,
+        amountOut,
+        amountInMax,
+        path,
+        SOURCE_MSG_SENDER,
+      ])
       const { commands, inputs } = planner
 
       const balanceWethBefore = await wethContract.balanceOf(bob.address)
@@ -287,7 +299,13 @@ describe('Uniswap V3 Tests:', () => {
       const tokens = [MAINNET_DAI.address, MAINNET_WETH.address]
       const path = encodePathExactOutput(tokens)
 
-      planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_OUT, [ADDRESS_THIS, amountOut, amountInMax, path, SOURCE_MSG_SENDER])
+      planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_OUT, [
+        ADDRESS_THIS,
+        amountOut,
+        amountInMax,
+        path,
+        SOURCE_MSG_SENDER,
+      ])
       planner.addCommand(CommandType.UNWRAP_WETH, [MSG_SENDER, amountOut])
 
       const { ethBalanceBefore, ethBalanceAfter, gasSpent } = await executeRouter(
@@ -330,7 +348,13 @@ describe('Uniswap V3 Tests:', () => {
       const path = encodePathExactOutput(tokens)
 
       planner.addCommand(CommandType.WRAP_ETH, [ADDRESS_THIS, amountInMax])
-      planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_OUT, [MSG_SENDER, amountOut, amountInMax, path, SOURCE_ROUTER])
+      planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_OUT, [
+        MSG_SENDER,
+        amountOut,
+        amountInMax,
+        path,
+        SOURCE_ROUTER,
+      ])
       planner.addCommand(CommandType.UNWRAP_WETH, [MSG_SENDER, 0])
 
       const { ethBalanceBefore, ethBalanceAfter, daiBalanceBefore, daiBalanceAfter, gasSpent, v3SwapEventArgs } =

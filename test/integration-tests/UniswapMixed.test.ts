@@ -4,7 +4,7 @@ import { expect } from './shared/expect'
 import { BigNumber } from 'ethers'
 import { IPermit2, UniversalRouter } from '../../typechain'
 import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
-import { abi as ERC4626_ABI } from '../../artifacts/@openzeppelin/contracts/interfaces/IERC4626.sol/IERC4626.json';
+import { abi as ERC4626_ABI } from '../../artifacts/@openzeppelin/contracts/interfaces/IERC4626.sol/IERC4626.json'
 import {
   resetFork,
   MAINNET_WETH,
@@ -13,7 +13,8 @@ import {
   MAINNET_USDT,
   MAINNET_WA_USDC,
   MAINNET_WA_WETH,
-  PERMIT2, UNISWAP_NFT_POSITION_MANAGER,
+  PERMIT2,
+  UNISWAP_NFT_POSITION_MANAGER,
 } from './shared/mainnetForkHelpers'
 import {
   ADDRESS_THIS,
@@ -35,8 +36,8 @@ import { getPermitBatchSignature } from './shared/protocolHelpers/permit2'
 import { encodePathExactInput, encodePathExactOutput } from './shared/swapRouter02Helpers'
 import { executeRouter } from './shared/executeRouter'
 const { ethers } = hre
-import {encodePriceSqrt} from '../../lib/v3-periphery/test/shared/encodePriceSqrt';
-import {getMinTick, getMaxTick} from '../../lib/v3-periphery/test/shared/ticks';
+import { encodePriceSqrt } from '../../lib/v3-periphery/test/shared/encodePriceSqrt'
+import { getMinTick, getMaxTick } from '../../lib/v3-periphery/test/shared/ticks'
 
 const USDC_WHALE = '0x0b07f64ABc342B68AEc57c0936E4B6fD4452967E'
 
@@ -51,7 +52,6 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
   let waWETHContract: Contract
   let waUSDCContract: Contract
   let planner: RoutePlanner
-
 
   beforeEach(async () => {
     await resetFork(23432811)
@@ -170,8 +170,16 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
       const minAmountOut2 = expandTo18DecimalsBN(0.006)
 
       // 1) transfer funds into DAI-USDC and DAI-USDT pairs to trade
-      planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [MAINNET_DAI.address, Pair.getAddress(MAINNET_DAI, MAINNET_USDC), v2AmountIn1])
-      planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [MAINNET_DAI.address, Pair.getAddress(MAINNET_DAI, MAINNET_USDT), v2AmountIn2])
+      planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [
+        MAINNET_DAI.address,
+        Pair.getAddress(MAINNET_DAI, MAINNET_USDC),
+        v2AmountIn1,
+      ])
+      planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [
+        MAINNET_DAI.address,
+        Pair.getAddress(MAINNET_DAI, MAINNET_USDT),
+        v2AmountIn2,
+      ])
 
       // 2) trade route1 and return tokens to bob
       planner.addCommand(CommandType.V2_SWAP_EXACT_IN, [MSG_SENDER, 0, minAmountOut1, route1, SOURCE_MSG_SENDER])
@@ -865,7 +873,7 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
         amount0Min: 0,
         amount1Min: 0,
         recipient: alice.address,
-        deadline: 10000000000000
+        deadline: 10000000000000,
       })
     })
 
@@ -873,7 +881,9 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
       const v3Tokens = [MAINNET_WA_USDC.address, MAINNET_WA_WETH.address]
 
       const amountInUSDC = expandTo6DecimalsBN(100)
-      const expectedAmountOutWaUSDC = BigNumber.from(await waUSDCContract.previewDeposit(amountInUSDC)).mul(99).div(100)
+      const expectedAmountOutWaUSDC = BigNumber.from(await waUSDCContract.previewDeposit(amountInUSDC))
+        .mul(99)
+        .div(100)
 
       // 1) transferFrom the funds,
       // 2) perform wrap
@@ -885,7 +895,7 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
         usdcContract.address,
         ADDRESS_THIS,
         amountInUSDC,
-        expectedAmountOutWaUSDC
+        expectedAmountOutWaUSDC,
       ])
       planner.addCommand(CommandType.UNISWAP_V3_SWAP_EXACT_IN, [
         ADDRESS_THIS,
@@ -894,18 +904,10 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
         encodePathExactInput(v3Tokens),
         SOURCE_ROUTER,
       ])
-      planner.addCommand(CommandType.ERC4626_UNWRAP, [
-        waWETHContract.address,
-        ADDRESS_THIS,
-        CONTRACT_BALANCE,
-        0
-      ])
-      planner.addCommand(CommandType.UNWRAP_WETH, [
-        MSG_SENDER,
-        0
-      ])
+      planner.addCommand(CommandType.ERC4626_UNWRAP, [waWETHContract.address, ADDRESS_THIS, CONTRACT_BALANCE, 0])
+      planner.addCommand(CommandType.UNWRAP_WETH, [MSG_SENDER, 0])
 
-      const {ethBalanceBefore, ethBalanceAfter, v3SwapEventArgs, gasSpent} = await executeRouter(
+      const { ethBalanceBefore, ethBalanceAfter, v3SwapEventArgs, gasSpent } = await executeRouter(
         planner,
         bob,
         router,
@@ -914,7 +916,7 @@ describe('Uniswap V2, V3, and V4 Tests:', () => {
         usdcContract
       )
 
-      const amountOut = (v3SwapEventArgs?.amount0!).mul(-1)
+      const amountOut = v3SwapEventArgs?.amount0!.mul(-1)
 
       // "greater than" because `amountOut` is WA_ETH amount. After UNWRAP it transforms into the greater ETH amount
       expect(ethBalanceAfter.sub(ethBalanceBefore)).to.be.gt(amountOut.sub(gasSpent))

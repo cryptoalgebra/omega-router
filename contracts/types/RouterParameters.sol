@@ -13,6 +13,6 @@ struct RouterParameters {
     // Algebra Integral parameters
     address integralFactory;
     address integralPoolDeployer;
-    bytes32 integralPoolInitCodeHash;
     address integralPosManager;
+    bytes32 integralPoolInitCodeHash;
 }

@@ -35,7 +35,7 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
         // because exact output swaps are executed in reverse order, in this case tokenOut is actually tokenIn
         (address tokenIn, address deployer, address tokenOut) = path.decodeFirstPool();
 
-        if (computePoolAddress(tokenIn,deployer, tokenOut) != msg.sender) revert IntegralInvalidCaller();
+        if (computePoolAddress(tokenIn, deployer, tokenOut) != msg.sender) revert IntegralInvalidCaller();
 
         (bool isExactInput, uint256 amountToPay) =
             amount0Delta > 0 ? (tokenIn < tokenOut, uint256(amount0Delta)) : (tokenOut < tokenIn, uint256(amount1Delta));
@@ -148,7 +148,11 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
     }
 
     /// @notice Deterministically computes the pool address given the poolDeployer and PoolKey
-    function computePoolAddress(address tokenA, address deployer, address tokenB) internal view returns (address pool) {
+    function computePoolAddress(address tokenA, address deployer, address tokenB)
+        internal
+        view
+        returns (address pool)
+    {
         if (tokenA > tokenB) (tokenA, tokenB) = (tokenB, tokenA);
         pool = address(
             uint160(

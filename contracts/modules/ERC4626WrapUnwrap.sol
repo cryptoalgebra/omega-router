@@ -43,12 +43,11 @@ abstract contract ERC4626WrapUnwrap {
     /// @param amountIn The amount of wrapped tokens to unwrap.
     /// @param minAmountOut The minimum amount of underlying tokens to receive.
     /// @return amountOut The amount of underlying tokens received.
-    function erc4626Unwrap(
-        address wrapper,
-        address receiver,
-        uint256 amountIn,
-        uint256 minAmountOut
-    ) internal virtual returns (uint256 amountOut) {
+    function erc4626Unwrap(address wrapper, address receiver, uint256 amountIn, uint256 minAmountOut)
+        internal
+        virtual
+        returns (uint256 amountOut)
+    {
         // use amountIn == ActionConstants.CONTRACT_BALANCE as a flag to wrap the entire balance of the contract
         if (amountIn == ActionConstants.CONTRACT_BALANCE) {
             amountIn = IERC20(wrapper).balanceOf(address(this));
