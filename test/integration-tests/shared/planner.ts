@@ -26,9 +26,9 @@ export enum CommandType {
 
   UNISWAP_V3_SWAP_EXACT_IN = 0x10,
   UNISWAP_V3_SWAP_EXACT_OUT = 0x11,
-  V3_POSITION_MANAGER_CALL = 0x12,
+  INTEGRAL_POSITION_MANAGER_CALL = 0x12,
   INTEGRAL_MINT = 0x13,
-  V4_POSITION_MANAGER_CALL = 0x14,
+  INTEGRAL_POSITION_MANAGER_PERMIT = 0x14,
 
   EXECUTE_SUB_PLAN = 0x21,
 }
@@ -81,9 +81,9 @@ const ABI_DEFINITION: { [key in CommandType]: string[] } = {
 
   [CommandType.UNISWAP_V3_SWAP_EXACT_IN]: ['address', 'uint256', 'uint256', 'bytes', 'bool'],
   [CommandType.UNISWAP_V3_SWAP_EXACT_OUT]: ['address', 'uint256', 'uint256', 'bytes', 'bool'],
-  [CommandType.V3_POSITION_MANAGER_CALL]: ['bytes'],
+  [CommandType.INTEGRAL_POSITION_MANAGER_CALL]: ['bytes'],
   [CommandType.INTEGRAL_MINT]: [MINT_PARAMS],
-  [CommandType.V4_POSITION_MANAGER_CALL]: ['bytes'],
+  [CommandType.INTEGRAL_POSITION_MANAGER_PERMIT]: ['bytes'],
 }
 
 export class RoutePlanner {
@@ -119,7 +119,7 @@ export type RouterCommand = {
 }
 
 export function createCommand(type: CommandType, parameters: any[]): RouterCommand {
-  if (type === CommandType.V3_POSITION_MANAGER_CALL || type === CommandType.V4_POSITION_MANAGER_CALL) {
+  if (type === CommandType.INTEGRAL_POSITION_MANAGER_CALL || type === CommandType.INTEGRAL_POSITION_MANAGER_PERMIT) {
     return { type, encodedInput: parameters[0] }
   } else {
     const encodedInput = defaultAbiCoder.encode(ABI_DEFINITION[type], parameters)

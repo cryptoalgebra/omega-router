@@ -10,3 +10,8 @@ export function expandTo6DecimalsBN(n: number): BigNumber {
   // use bn intermediately to allow decimals in intermediate calculations
   return BigNumber.from(new bn(n).times(new bn(10).pow(6)).toFixed())
 }
+
+export function expand6To18DecimalsBN(n: BigNumber): BigNumber {
+  // use bn intermediately to allow decimals in intermediate calculations
+  return n.mul(new bn(10).pow(12).toFixed())
+}

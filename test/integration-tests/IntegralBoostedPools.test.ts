@@ -21,27 +21,31 @@ import {
   CONTRACT_BALANCE,
   DEADLINE,
   MAX_UINT,
+  MAX_UINT128,
   MAX_UINT160,
   MSG_SENDER,
   SOURCE_ROUTER,
   ZERO_ADDRESS,
 } from './shared/constants'
-import { expandTo18DecimalsBN, expandTo6DecimalsBN } from './shared/helpers'
+import { expand6To18DecimalsBN, expandTo18DecimalsBN, expandTo6DecimalsBN } from './shared/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import deployUniversalRouter from './shared/deployUniversalRouter'
 import { CommandType, RoutePlanner } from './shared/planner'
 import hre from 'hardhat'
 import { encodePathExactInputIntegral } from './shared/swapRouter02Helpers'
-import { DEX, executeRouter } from './shared/executeRouter'
+import { DEX, executeRouter, ExecutionParams } from './shared/executeRouter'
 import { ADDRESS_ZERO } from '@uniswap/v3-sdk'
 import { encodePriceSqrt } from '../../lib/v3-periphery/test/shared/encodePriceSqrt'
 import { getMaxTick, getMinTick } from '../../lib/v3-periphery/test/shared/ticks'
+import { encodeCollect, encodeERC721Permit } from './shared/encodeCall'
+import getPermitNFTSignature from './shared/getPermitNFTSignature'
 
 const { ethers } = hre
 
 describe('Algebra Integral Boosted Pools Tests:', () => {
   let alice: SignerWithAddress
   let bob: SignerWithAddress
+  let vault: SignerWithAddress
   let router: UniversalRouter
   let permit2: IPermit2
   let usdcContract: Contract
@@ -51,6 +55,89 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
   let daiContract: Contract
   let planner: RoutePlanner
 
+  async function swapUSDCtoWETH(): Promise<ExecutionParams> {
+    const v3Tokens = [BASE_WM_USDC.address, BASE_WA_WETH.address]
+
+    const amountInUSDC = expandTo6DecimalsBN(100)
+    const expectedAmountOutWaUSDC = BigNumber.from(await wUSDCContract.previewDeposit(amountInUSDC))
+      .mul(99)
+      .div(100)
+
+    // 1) transferFrom the funds,
+    // 2) perform wrap
+    // 3) Uniswap V3 swap using router's balance; amountIn = router's balance
+    // 4) perform unwrap; amountIn = router's balance
+    planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [BASE_USDC.address, router.address, amountInUSDC])
+    planner.addCommand(CommandType.ERC4626_WRAP, [
+      wUSDCContract.address,
+      usdcContract.address,
+      ADDRESS_THIS,
+      amountInUSDC,
+      expectedAmountOutWaUSDC,
+    ])
+    planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_IN, [
+      ADDRESS_THIS,
+      CONTRACT_BALANCE,
+      0,
+      encodePathExactInputIntegral(v3Tokens),
+      SOURCE_ROUTER,
+    ])
+    planner.addCommand(CommandType.ERC4626_UNWRAP, [wWETHContract.address, ADDRESS_THIS, CONTRACT_BALANCE, 0])
+    planner.addCommand(CommandType.UNWRAP_WETH, [MSG_SENDER, 0])
+
+    return await executeRouter(
+      planner,
+      bob,
+      router,
+      wethContract,
+      daiContract,
+      usdcContract,
+      undefined,
+      DEX.ALGEBRA_INTEGRAL
+    )
+  }
+
+  async function swapWETHtoUSDC(): Promise<ExecutionParams> {
+    const v3Tokens = [BASE_WA_WETH.address, BASE_WM_USDC.address]
+
+    const amountInWeth = expandTo18DecimalsBN(0.02)
+    const expectedAmountOutWWeth = BigNumber.from(await wWETHContract.previewDeposit(amountInWeth))
+      .mul(99)
+      .div(100)
+
+    // 1) transferFrom the funds,
+    // 2) perform wrap
+    // 3) Uniswap V3 swap using router's balance; amountIn = router's balance
+    // 4) perform unwrap; amountIn = router's balance
+    planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [BASE_WETH.address, router.address, amountInWeth])
+    planner.addCommand(CommandType.ERC4626_WRAP, [
+      wWETHContract.address,
+      wethContract.address,
+      ADDRESS_THIS,
+      amountInWeth,
+      expectedAmountOutWWeth,
+    ])
+    planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_IN, [
+      ADDRESS_THIS,
+      CONTRACT_BALANCE,
+      0,
+      encodePathExactInputIntegral(v3Tokens),
+      SOURCE_ROUTER,
+    ])
+    planner.addCommand(CommandType.ERC4626_UNWRAP, [wUSDCContract.address, MSG_SENDER, CONTRACT_BALANCE, 0])
+
+    return await executeRouter(
+      planner,
+      bob,
+      router,
+      wethContract,
+      daiContract,
+      usdcContract,
+      undefined,
+      DEX.ALGEBRA_INTEGRAL
+    )
+  }
+
   beforeEach(async () => {
     await resetFork(36274285, `https://rpc.ankr.com/base/${process.env.ANKR_API_KEY}`)
     await hre.network.provider.request({
@@ -59,6 +146,7 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
     })
     alice = await ethers.getSigner(BASE_ALICE_ADDRESS)
     bob = (await ethers.getSigners())[1]
+    vault = (await ethers.getSigners())[2]
     usdcContract = new ethers.Contract(BASE_USDC.address, TOKEN_ABI, bob)
     wethContract = new ethers.Contract(BASE_WETH.address, TOKEN_ABI, bob)
     daiContract = new ethers.Contract(BASE_DAI.address, TOKEN_ABI, bob)
@@ -96,14 +184,11 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       await wethContract.connect(alice).approve(BASE_WA_WETH.address, MAX_UINT)
       await usdcContract.connect(alice).approve(BASE_WM_USDC.address, MAX_UINT)
 
-      console.log('before deposit')
       await wWETHContract.connect(alice).deposit(expandTo18DecimalsBN(21.4), alice.address)
       await wUSDCContract.connect(alice).deposit(expandTo6DecimalsBN(90000), alice.address)
 
       const wWETHAmount = await wWETHContract.balanceOf(alice.address)
       const wUSDCAmount = await wUSDCContract.balanceOf(alice.address)
-      console.log('before create pool')
-      console.log(wWETHAmount, wUSDCAmount, encodePriceSqrt(wUSDCAmount, wWETHAmount))
       // create V3 pool with ERC4626 tokens
       await INTEGRAL_NFT_POSITION_MANAGER.connect(alice).createAndInitializePoolIfNecessary(
         wUSDCContract.address,
@@ -112,8 +197,6 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
         encodePriceSqrt(wWETHAmount, wUSDCAmount),
         '0x'
       )
-
-      console.log('pool created')
 
       // add liq to the pool
       await wWETHContract.connect(alice).approve(INTEGRAL_NFT_POSITION_MANAGER.address, MAX_UINT)
@@ -132,63 +215,67 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
         recipient: alice.address,
         deadline: 10000000000000,
       })
-      console.log('minted')
     })
 
     it('100 USDC wrap -> wmUSDC swap -> waWETH unwrap -> WETH', async () => {
-      const v3Tokens = [BASE_WM_USDC.address, BASE_WA_WETH.address]
-
-      const amountInUSDC = expandTo6DecimalsBN(100)
-      const expectedAmountOutWaUSDC = BigNumber.from(await wUSDCContract.previewDeposit(amountInUSDC))
-        .mul(99)
-        .div(100)
-
-      // 1) transferFrom the funds,
-      // 2) perform wrap
-      // 3) Uniswap V3 swap using router's balance; amountIn = router's balance
-      // 4) perform unwrap; amountIn = router's balance
-      planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [BASE_USDC.address, router.address, amountInUSDC])
-      planner.addCommand(CommandType.ERC4626_WRAP, [
-        wUSDCContract.address,
-        usdcContract.address,
-        ADDRESS_THIS,
-        amountInUSDC,
-        expectedAmountOutWaUSDC,
-      ])
-      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_IN, [
-        ADDRESS_THIS,
-        CONTRACT_BALANCE,
-        0,
-        encodePathExactInputIntegral(v3Tokens),
-        SOURCE_ROUTER,
-      ])
-      planner.addCommand(CommandType.ERC4626_UNWRAP, [wWETHContract.address, ADDRESS_THIS, CONTRACT_BALANCE, 0])
-      planner.addCommand(CommandType.UNWRAP_WETH, [MSG_SENDER, 0])
-
-      const { ethBalanceBefore, ethBalanceAfter, v3SwapEventArgs, gasSpent } = await executeRouter(
-        planner,
-        bob,
-        router,
-        wethContract,
-        daiContract,
-        usdcContract,
-        undefined,
-        DEX.ALGEBRA_INTEGRAL
-      )
+      const { ethBalanceBefore, ethBalanceAfter, v3SwapEventArgs, gasSpent } = await swapUSDCtoWETH()
 
       const amountOut = v3SwapEventArgs?.amount1!.mul(-1)
 
       // "greater than" because `amountOut` is WA_ETH amount. After UNWRAP it transforms into the greater ETH amount
       expect(ethBalanceAfter.sub(ethBalanceBefore)).to.be.gt(amountOut.sub(gasSpent))
     })
+
+    it('0.02 WETH wrap -> waWETH swap -> wUSDC unwrap -> USDC', async () => {
+      const { usdcBalanceBefore, usdcBalanceAfter, v3SwapEventArgs } = await swapWETHtoUSDC()
+
+      const amountOut = v3SwapEventArgs?.amount0!.mul(-1)
+
+      // "greater than" because `amountOut` is WA_ETH amount. After UNWRAP it transforms into the greater ETH amount
+      expect(expand6To18DecimalsBN(usdcBalanceAfter.sub(usdcBalanceBefore))).to.be.gt(amountOut)
+    })
   })
 
-  describe('Liquidity', () => {
-    it('can provide liquidity', async () => {
+  describe('Positions', () => {
+    let tokenId: BigNumber
+
+    function collect(recipient: string): string {
+      // set receiver to v4posm
+      const collectParams = {
+        tokenId: tokenId,
+        recipient: recipient,
+        amount0Max: MAX_UINT128,
+        amount1Max: MAX_UINT128,
+      }
+
+      return encodeCollect(collectParams)
+    }
+
+    async function permit(): Promise<string> {
+      const { v, r, s } = await getPermitNFTSignature(
+        bob,
+        INTEGRAL_NFT_POSITION_MANAGER.connect(bob),
+        router.address,
+        tokenId,
+        MAX_UINT
+      )
+      const erc721PermitParams = {
+        spender: router.address,
+        tokenId: tokenId,
+        deadline: MAX_UINT,
+        v: v,
+        r: r,
+        s: s,
+      }
+
+      return encodeERC721Permit(erc721PermitParams)
+    }
+
+    beforeEach('provide liquidity', async () => {
       const ethToWeth = BigNumber.from(await wWETHContract.previewDeposit(expandTo18DecimalsBN(1)))
       const usdcToWusdc = BigNumber.from(await wUSDCContract.previewDeposit(expandTo6DecimalsBN(4200)))
 
-      await INTEGRAL_NFT_POSITION_MANAGER.connect(alice).createAndInitializePoolIfNecessary(
+      await INTEGRAL_NFT_POSITION_MANAGER.connect(bob).createAndInitializePoolIfNecessary(
         wUSDCContract.address,
         wWETHContract.address,
         ADDRESS_ZERO,
@@ -231,7 +318,7 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
         ],
       ])
 
-      const { integralPosEventArgs, receipt } = await executeRouter(
+      const { integralPosEventArgs } = await executeRouter(
         planner,
         bob,
         router,
@@ -242,7 +329,36 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
         DEX.ALGEBRA_INTEGRAL
       )
 
-      console.log(integralPosEventArgs, receipt.gasUsed)
+      tokenId = integralPosEventArgs!.tokenId
+    })
+
+    it('collect fees with unwrap', async () => {
+      await swapUSDCtoWETH()
+      await swapWETHtoUSDC()
+
+      planner = new RoutePlanner()
+
+      const encodedErc721PermitCall = await permit()
+      const encodedCollectCall = collect(router.address)
+
+      planner.addCommand(CommandType.INTEGRAL_POSITION_MANAGER_PERMIT, [encodedErc721PermitCall])
+      planner.addCommand(CommandType.INTEGRAL_POSITION_MANAGER_CALL, [encodedCollectCall])
+      planner.addCommand(CommandType.ERC4626_UNWRAP, [wWETHContract.address, vault.address, CONTRACT_BALANCE, 0])
+      planner.addCommand(CommandType.ERC4626_UNWRAP, [wUSDCContract.address, vault.address, CONTRACT_BALANCE, 0])
+
+      await executeRouter(
+        planner,
+        bob,
+        router,
+        wethContract,
+        daiContract,
+        usdcContract,
+        undefined,
+        DEX.ALGEBRA_INTEGRAL
+      )
+
+      expect(await usdcContract.balanceOf(vault.address)).to.be.gt(0)
+      expect(await wethContract.balanceOf(vault.address)).to.be.gt(0)
     })
   })
 })

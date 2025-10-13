@@ -28,11 +28,12 @@ type V3SwapEventArgs = {
 }
 
 type IntegralPositionEventArgs = {
+  tokenId: BigNumber
   amount0: BigNumber
   amount1: BigNumber
 }
 
-type ExecutionParams = {
+export type ExecutionParams = {
   wethBalanceBefore: BigNumber
   wethBalanceAfter: BigNumber
   daiBalanceBefore: BigNumber

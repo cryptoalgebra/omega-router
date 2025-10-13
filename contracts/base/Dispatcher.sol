@@ -310,6 +310,9 @@ abstract contract Dispatcher is
                     bytes calldata path = inputs.toBytes(3);
                     address payer = payerIsUser ? msgSender() : address(this);
                     v3SwapExactOutput(map(recipient), amountOut, amountInMax, path, payer);
+                } else if (command == Commands.INTEGRAL_POSITION_MANAGER_CALL) {
+                    _checkV3PositionManagerCall(inputs, msgSender());
+                    (success, output) = address(ALGEBRA_INTEGRAL_POSITION_MANAGER).call(inputs);
                 } else if (command == Commands.INTEGRAL_MINT) {
                     // equivalent: abi.decode(inputs, ((address, address, address, int24, int24, uint256, uint256, uint256, uint256, address, uint256)))
                     INonfungiblePositionManager.MintParams memory params;
@@ -331,6 +334,9 @@ abstract contract Dispatcher is
                     params.recipient = map(params.recipient);
 
                     integralMint(params);
+                } else if (command == Commands.INTEGRAL_POSITION_MANAGER_PERMIT) {
+                    _checkV3PermitCall(inputs);
+                    (success, output) = address(ALGEBRA_INTEGRAL_POSITION_MANAGER).call(inputs);
                 } else {
                     // placeholder area for commands 0x15-0x20
                     revert InvalidCommandType(command);
