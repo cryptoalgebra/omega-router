@@ -37,7 +37,7 @@ import { DEX, executeRouter, ExecutionParams } from './shared/executeRouter'
 import { ADDRESS_ZERO } from '@uniswap/v3-sdk'
 import { encodePriceSqrt } from '../../lib/v3-periphery/test/shared/encodePriceSqrt'
 import { getMaxTick, getMinTick } from '../../lib/v3-periphery/test/shared/ticks'
-import { encodeCollect, encodeERC721Permit } from './shared/encodeCall'
+import {encodeCollect, encodeDecreaseLiquidity, encodeERC721Permit} from './shared/encodeCall'
 import getPermitNFTSignature from './shared/getPermitNFTSignature'
 
 const { ethers } = hre
@@ -220,7 +220,7 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
     it('100 USDC wrap -> wmUSDC swap -> waWETH unwrap -> WETH', async () => {
       const { ethBalanceBefore, ethBalanceAfter, v3SwapEventArgs, gasSpent } = await swapUSDCtoWETH()
 
-      const amountOut = v3SwapEventArgs?.amount1!.mul(-1)
+      const amountOut = (v3SwapEventArgs?.amount1!).mul(-1)
 
       // "greater than" because `amountOut` is WA_ETH amount. After UNWRAP it transforms into the greater ETH amount
       expect(ethBalanceAfter.sub(ethBalanceBefore)).to.be.gt(amountOut.sub(gasSpent))
@@ -269,6 +269,21 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       }
 
       return encodeERC721Permit(erc721PermitParams)
+    }
+
+    async function decreaseLiquidity(): Promise<string> {
+      let position = await INTEGRAL_NFT_POSITION_MANAGER.connect(bob).positions(tokenId)
+      let liquidity = position.liquidity
+
+      const decreaseParams = {
+        tokenId: tokenId,
+        liquidity: liquidity,
+        amount0Min: 0,
+        amount1Min: 0,
+        deadline: MAX_UINT,
+      }
+
+      return encodeDecreaseLiquidity(decreaseParams)
     }
 
     beforeEach('provide liquidity', async () => {
@@ -329,13 +344,17 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
         DEX.ALGEBRA_INTEGRAL
       )
 
-      tokenId = integralPosEventArgs!.tokenId
+      // reset planner after swaps
+      planner = new RoutePlanner()
+
+      tokenId = integralPosEventArgs![0].tokenId
     })
 
     it('collect fees with unwrap', async () => {
       await swapUSDCtoWETH()
       await swapWETHtoUSDC()
 
+      // reset planner after swaps
       planner = new RoutePlanner()
 
       const encodedErc721PermitCall = await permit()
@@ -359,6 +378,35 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
 
       expect(await usdcContract.balanceOf(vault.address)).to.be.gt(0)
       expect(await wethContract.balanceOf(vault.address)).to.be.gt(0)
+    })
+
+    it('remove liquidity with unwrap', async () => {
+      const encodedErc721PermitCall = await permit()
+      const encodedDecreaseCall = decreaseLiquidity()
+      const encodedCollectCall = collect(router.address)
+
+      console.log(await wWETHContract.balanceOf(router.address))
+      planner.addCommand(CommandType.INTEGRAL_POSITION_MANAGER_PERMIT, [encodedErc721PermitCall])
+      planner.addCommand(CommandType.INTEGRAL_POSITION_MANAGER_CALL, [encodedDecreaseCall])
+      planner.addCommand(CommandType.INTEGRAL_POSITION_MANAGER_CALL, [encodedCollectCall])
+      planner.addCommand(CommandType.ERC4626_UNWRAP, [wWETHContract.address, vault.address, CONTRACT_BALANCE, 0])
+      planner.addCommand(CommandType.ERC4626_UNWRAP, [wUSDCContract.address, vault.address, CONTRACT_BALANCE, 0])
+
+      const {integralPosEventArgs} = await executeRouter(
+        planner,
+        bob,
+        router,
+        wethContract,
+        daiContract,
+        usdcContract,
+        undefined,
+        DEX.ALGEBRA_INTEGRAL
+      )
+
+      console.log(integralPosEventArgs)
+
+      expect(await usdcContract.balanceOf(vault.address)).to.be.approximately(expandTo6DecimalsBN(4200), 10)
+      expect(await wethContract.balanceOf(vault.address)).to.be.approximately(expandTo18DecimalsBN(1), 10)
     })
   })
 })

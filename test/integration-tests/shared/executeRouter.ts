@@ -44,7 +44,7 @@ export type ExecutionParams = {
   ethBalanceAfter: BigNumber
   v2SwapEventArgs: V2SwapEventArgs | undefined
   v3SwapEventArgs: V3SwapEventArgs | undefined
-  integralPosEventArgs: IntegralPositionEventArgs | undefined
+  integralPosEventArgs: IntegralPositionEventArgs[] | undefined
   receipt: TransactionReceipt
   gasSpent: BigNumber
 }
@@ -86,8 +86,9 @@ export async function executeRouter(
   })()
   const v2SwapEventArgs = parseEvents(V2_EVENTS, receipt)[0]?.args as unknown as V2SwapEventArgs
 
-  const integralPosEventArgs = parseEvents(ALGEBRA_INTEGRAL_POSITION_EVENTS, receipt)[0]
-    ?.args as unknown as IntegralPositionEventArgs
+  const integralPosEventArgs = parseEvents(ALGEBRA_INTEGRAL_POSITION_EVENTS, receipt).map(
+    event => event?.args as unknown as IntegralPositionEventArgs
+  )
 
   const ethBalanceAfter: BigNumber = await ethers.provider.getBalance(caller.address)
   const wethBalanceAfter: BigNumber = await wethContract.balanceOf(caller.address)

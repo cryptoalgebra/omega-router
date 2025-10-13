@@ -17,6 +17,8 @@ export const ALGEBRA_INTEGRAL_EVENTS = new Interface([
 
 export const ALGEBRA_INTEGRAL_POSITION_EVENTS = new Interface([
   'event IncreaseLiquidity(uint256 indexed tokenId,uint128 liquidityDesired,uint128 actualLiquidity,uint256 amount0,uint256 amount1,address pool)',
+  'event DecreaseLiquidity(uint256 indexed tokenId, uint128 liquidity, uint256 amount0, uint256 amount1)',
+  'event Collect(uint256 indexed tokenId, address recipient, uint256 amount0, uint256 amount1)'
 ])
 
 export function parseEvents(iface: Interface, receipt: TransactionReceipt): (LogDescription | undefined)[] {
