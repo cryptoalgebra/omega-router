@@ -8,6 +8,32 @@ import { BigNumber } from 'ethers'
 import { DEFAULT_POOL_DEPLOYER } from './constants'
 import { Pair } from '@uniswap/v2-sdk'
 
+/**
+ * Action flags for Integral path encoding with wrap/unwrap support
+ * 
+ * New path format: token(20) + flag(1) + vault(20) + deployer(20) + token(20) + ... = 81 bytes per segment
+ * 
+ * ACTION_FLAG_SWAP (0x00): Standard swap, no wrap/unwrap
+ *   - vaultAddress should be 0x0 (ignored)
+ *   - Example: tokenA --[SWAP]--> tokenB
+ * 
+ * ACTION_FLAG_WRAP (0x01): Wrap incoming token before swap (underlying → vault)
+ *   - vaultAddress = vault token address (ERC4626)
+ *   - Example: USDC --[WRAP,vaultUSDC]--> vaultUSDC --swap--> ...
+ * 
+ * ACTION_FLAG_UNWRAP (0x02): Unwrap incoming token before swap (vault → underlying)
+ *   - vaultAddress = vault token address (ERC4626)
+ *   - Example: vaultWETH --[UNWRAP,vaultWETH]--> WETH --swap--> ...
+ * 
+ * Full example path (USDC → vaultUSDC → vaultWETH → WETH):
+ *   tokens: [USDC, vaultUSDC, vaultWETH, WETH]
+ *   flags: [WRAP, SWAP, UNWRAP]
+ *   vaultAddresses: [vaultUSDC, 0x0, vaultWETH]
+ */
+export const ACTION_FLAG_SWAP = 0x00
+export const ACTION_FLAG_WRAP = 0x01
+export const ACTION_FLAG_UNWRAP = 0x02
+
 const sqrtRatioX96 = encodeSqrtRatioX96(1, 1)
 const liquidity = 1_000_000
 
@@ -170,6 +196,75 @@ export function encodePathExactInputIntegral(tokens: string[]): string {
 
 export function encodePathExactOutputIntegral(tokens: string[]): string {
   return encodePathIntegral(tokens.slice().reverse())
+}
+
+/**
+ * Encode Integral path with action flags and vault addresses
+ * @param tokens Array of token addresses
+ * @param flags Array of action flags (0x00=SWAP, 0x01=WRAP, 0x02=UNWRAP)
+ * @param vaultAddresses Array of vault addresses (ERC4626 vaults for WRAP/UNWRAP, 0x0 for SWAP)
+ * @returns Encoded path as hex string
+ */
+export function encodePathIntegralWithFlags(
+  tokens: string[],
+  flags: number[],
+  vaultAddresses: string[]
+): string {
+  if (tokens.length < 2) throw new Error('Path must contain at least 2 tokens')
+  if (flags.length !== tokens.length - 1) throw new Error('Flags length must be tokens.length - 1')
+  if (vaultAddresses.length !== tokens.length - 1) throw new Error('VaultAddresses length must be tokens.length - 1')
+
+  let encoded = '0x'
+  for (let i = 0; i < tokens.length - 1; i++) {
+    // token (20 bytes)
+    encoded += tokens[i].slice(2)
+    // action flag (1 byte)
+    encoded += flags[i].toString(16).padStart(2, '0')
+    // vault address (20 bytes) - vault address or 0x0
+    encoded += vaultAddresses[i].slice(2)
+    // deployer (20 bytes)
+    encoded += DEFAULT_POOL_DEPLOYER.slice(2)
+  }
+  // encode the final token (20 bytes)
+  encoded += tokens[tokens.length - 1].slice(2)
+
+  return encoded.toLowerCase()
+}
+
+/**
+ * Encode Integral exact input path with flags
+ * Format: token0 + flag + vault + deployer + token1 + flag + vault + deployer + token2
+ */
+export function encodePathExactInputIntegralWithFlags(
+  tokens: string[],
+  flags: number[],
+  vaultAddresses: string[]
+): string {
+  return encodePathIntegralWithFlags(tokens, flags, vaultAddresses)
+}
+
+/**
+ * Encode Integral exact output path with flags (reverses tokens and inverts flags)
+ * WRAP becomes UNWRAP, UNWRAP becomes WRAP, SWAP stays SWAP
+ */
+export function encodePathExactOutputIntegralWithFlags(
+  tokens: string[],
+  flags: number[],
+  vaultAddresses: string[]
+): string {
+  const reversedTokens = tokens.slice().reverse()
+  const reversedFlags = flags.slice().reverse().map(invertActionFlag)
+  const reversedVaults = vaultAddresses.slice().reverse()
+  return encodePathIntegralWithFlags(reversedTokens, reversedFlags, reversedVaults)
+}
+
+/**
+ * Invert action flag for exact output (WRAP <-> UNWRAP, SWAP stays SWAP)
+ */
+function invertActionFlag(flag: number): number {
+  if (flag === 0x01) return 0x02 // WRAP -> UNWRAP
+  if (flag === 0x02) return 0x01 // UNWRAP -> WRAP
+  return 0x00 // SWAP stays SWAP
 }
 
 export function expandTo18Decimals(n: number): BigintIsh {

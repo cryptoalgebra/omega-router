@@ -52,8 +52,10 @@ abstract contract ERC4626WrapUnwrap {
         if (amountIn == ActionConstants.CONTRACT_BALANCE) {
             amountIn = IERC20(wrapper).balanceOf(address(this));
         }
-
-        amountOut = IERC4626(wrapper).redeem(amountIn, receiver, address(this));
-        if (amountOut < minAmountOut) revert ERC4626TooLittleReceived();
+        
+        if(amountIn > 0) {
+            amountOut = IERC4626(wrapper).redeem(amountIn, receiver, address(this));
+            if (amountOut < minAmountOut) revert ERC4626TooLittleReceived();
+        }
     }
 }

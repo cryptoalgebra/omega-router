@@ -32,15 +32,30 @@ library Constants {
     /// @dev The minimum length of an encoding that contains 2 or more pools
     uint256 internal constant MULTIPLE_V3_POOLS_MIN_LENGTH = V3_POP_OFFSET + NEXT_V3_POOL_OFFSET;
 
-    /// @dev The offset of a custom pool deployer address
-    uint256 internal constant INTEGRAL_DEPLOYER_OFFSET = ADDR_SIZE;
+    /// @dev The length of the action flag (1 byte)
+    uint256 internal constant ACTION_FLAG_SIZE = 1;
 
-    /// @dev The offset of a single token address + deployer address
-    uint256 internal constant INTEGRAL_NEXT_OFFSET = ADDR_SIZE + INTEGRAL_DEPLOYER_OFFSET;
+    /// @dev The length of the vault address (20 bytes) - used for vault address in WRAP/UNWRAP
+    uint256 internal constant VAULT_ADDRESS_SIZE = 20;
 
-    /// @dev The offset of an encoded pool key
+    /// @dev The offset to the action flag (after first token address)
+    uint256 internal constant INTEGRAL_ACTION_FLAG_OFFSET = ADDR_SIZE;
+
+    /// @dev The offset to the vault address (after action flag)
+    uint256 internal constant INTEGRAL_VAULT_ADDRESS_OFFSET = INTEGRAL_ACTION_FLAG_OFFSET + ACTION_FLAG_SIZE;
+
+    /// @dev The offset to the pool deployer address (after vault address)
+    uint256 internal constant INTEGRAL_DEPLOYER_OFFSET = INTEGRAL_VAULT_ADDRESS_OFFSET + VAULT_ADDRESS_SIZE;
+
+    /// @dev The offset to skip to next segment
+    /// Token (20) + Flag (1) + Vault (20) + Deployer (20) = 61
+    uint256 internal constant INTEGRAL_NEXT_OFFSET = ADDR_SIZE + ACTION_FLAG_SIZE + VAULT_ADDRESS_SIZE + ADDR_SIZE;
+
+    /// @dev The offset of an encoded pool segment (includes second token)
+    /// Token (20) + Flag (1) + Aux (20) + Deployer (20) + Token (20) = 81
     uint256 internal constant INTEGRAL_POP_OFFSET = INTEGRAL_NEXT_OFFSET + ADDR_SIZE;
 
     /// @dev The minimum length of an encoding that contains 2 or more pools
+    /// First segment (81) + second segment start (61) = 142
     uint256 internal constant INTEGRAL_MULTIPLE_POOLS_MIN_LENGTH = INTEGRAL_POP_OFFSET + INTEGRAL_NEXT_OFFSET;
 }

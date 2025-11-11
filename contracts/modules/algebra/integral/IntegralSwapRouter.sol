@@ -3,9 +3,11 @@ pragma solidity ^0.8.24;
 
 import {IntegralPath} from './IntegralPath.sol';
 import {IntegralBytesLib} from './IntegralBytesLib.sol';
+import {ActionFlags} from '../../../libraries/ActionFlags.sol';
 import {SafeCast} from '@cryptoalgebra/integral-core/contracts/libraries/SafeCast.sol';
 import {IAlgebraPool} from '@cryptoalgebra/integral-core/contracts/interfaces/IAlgebraPool.sol';
 import {IAlgebraSwapCallback} from '@cryptoalgebra/integral-core/contracts/interfaces/callback/IAlgebraSwapCallback.sol';
+import {IERC4626} from '@openzeppelin/contracts/interfaces/IERC4626.sol';
 import {ActionConstants} from '../../../libraries/ActionConstants.sol';
 import {CalldataDecoder} from '../../../libraries/CalldataDecoder.sol';
 import {Constants} from '../../../libraries/Constants.sol';
@@ -32,9 +34,11 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
         (, address payer) = abi.decode(data, (bytes, address));
         bytes calldata path = data.toBytes(0);
 
-        // because exact output swaps are executed in reverse order, in this case tokenOut is actually tokenIn
-        (address tokenIn, address deployer, address tokenOut) = path.decodeFirstPool();
+        // Decode with new format (vaultAddress not used in callback, handled before swap)
+        (address tokenIn,,, address deployer, address tokenOut) = path.decodeFirstPoolWithVault();
 
+        // For pool address computation, use actual tokens that will be swapped
+        // (not the wrapped/unwrapped versions - those are handled before swap call)
         if (computePoolAddress(tokenIn, deployer, tokenOut) != msg.sender) revert IntegralInvalidCaller();
 
         (bool isExactInput, uint256 amountToPay) =
@@ -80,9 +84,43 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
         while (true) {
             bool hasMultiplePools = path.hasMultiplePools();
 
+            // Decode segment with action flag and vault address
+            (address tokenIn, uint8 flag, address vaultAddress,,) = path.decodeFirstPoolWithVault();
+
+            address actualTokenIn = tokenIn;
+            uint256 actualAmountIn = amountIn;
+
+            // Handle WRAP: convert underlying to vault shares before swap
+            if (ActionFlags.isWrap(flag)) {
+                // vaultAddress is the vault address
+                // Transfer underlying token to this contract if needed
+                if (payer != address(this)) {
+                    payOrPermit2Transfer(tokenIn, payer, address(this), amountIn);
+                    payer = address(this);
+                }
+
+                // Approve vault to spend underlying
+                ERC20(tokenIn).approve(vaultAddress, amountIn);
+
+                // Deposit underlying and get vault shares
+                actualAmountIn = IERC4626(vaultAddress).deposit(amountIn, address(this));
+                actualTokenIn = vaultAddress; // vault token becomes input for pool
+            } else if (ActionFlags.isUnwrap(flag)) {
+                // Handle UNWRAP: convert vault shares to underlying before swap
+                // Transfer vault tokens to this contract if needed
+                if (payer != address(this)) {
+                    payOrPermit2Transfer(tokenIn, payer, address(this), amountIn);
+                    payer = address(this);
+                }
+
+                // Redeem vault shares for underlying
+                actualAmountIn = IERC4626(vaultAddress).redeem(amountIn, address(this), address(this));
+                actualTokenIn = IERC4626(vaultAddress).asset(); // underlying token becomes input for pool
+            }
+
             // the outputs of prior swaps become the inputs to subsequent ones
             (int256 amount0Delta, int256 amount1Delta, bool zeroForOne) = _integralSwap(
-                amountIn.toInt256(),
+                actualAmountIn.toInt256(),
                 hasMultiplePools ? address(this) : recipient, // for intermediate swaps, this contract custodies
                 path.getFirstPool(), // only the first pool is needed
                 payer, // for intermediate swaps, this contract custodies
@@ -134,11 +172,24 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
         private
         returns (int256 amount0Delta, int256 amount1Delta, bool zeroForOne)
     {
-        (address tokenIn, address deployer, address tokenOut) = path.decodeFirstPool();
+        (address tokenIn, uint8 flag, address vaultAddress, address deployer, address tokenOut) =
+            path.decodeFirstPoolWithVault();
 
-        zeroForOne = isExactIn ? tokenIn < tokenOut : tokenOut < tokenIn;
+        // Determine actual pool tokens based on action flag
+        address actualTokenIn = tokenIn;
+        address actualTokenOut = tokenOut;
 
-        (amount0Delta, amount1Delta) = IAlgebraPool(computePoolAddress(tokenIn, deployer, tokenOut)).swap(
+        if (ActionFlags.isWrap(flag)) {
+            // When wrapping, pool input is vault token (vaultAddress)
+            actualTokenIn = vaultAddress;
+        } else if (ActionFlags.isUnwrap(flag)) {
+            // When unwrapping, actualTokenIn is underlying (from vault.asset())
+            actualTokenIn = IERC4626(vaultAddress).asset();
+        }
+
+        zeroForOne = isExactIn ? actualTokenIn < actualTokenOut : actualTokenOut < actualTokenIn;
+
+        (amount0Delta, amount1Delta) = IAlgebraPool(computePoolAddress(actualTokenIn, deployer, actualTokenOut)).swap(
             recipient,
             zeroForOne,
             amount,

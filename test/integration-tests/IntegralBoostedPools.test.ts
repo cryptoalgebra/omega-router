@@ -961,5 +961,62 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
         expect(position.token1).to.equal(morphoWETHContract.address)
       })
     })
+
+    describe('New Path Format with Action Flags', () => {
+      it('ExactInput: USDC → [WRAP] → vaultUSDC → [SWAP] → vaultWETH → [UNWRAP] → WETH', async () => {
+        const { encodePathExactInputIntegralWithFlags, ACTION_FLAG_WRAP, ACTION_FLAG_SWAP, ACTION_FLAG_UNWRAP } =
+          await import('./shared/swapRouter02Helpers')
+
+        const amountInUSDC = expandTo6DecimalsBN(100)
+        const minAmountOutWETH = expandTo18DecimalsBN(0.02)
+
+        const morphoUSDCContract = new ethers.Contract(BASE_MORPHO_USDC_VAULT.address, ERC4626_ABI, alice)
+        const morphoWETHContract = new ethers.Contract(BASE_MORPHO_WETH_VAULT.address, ERC4626_ABI, alice)
+
+        // New path format: token0 + flag + aux + deployer + token1 + flag + aux + deployer + token2
+        // USDC → [WRAP, vaultUSDC] → vaultUSDC → [SWAP, 0x0] → vaultWETH → [UNWRAP, vaultWETH] → WETH
+        const path = encodePathExactInputIntegralWithFlags(
+          [BASE_USDC.address, BASE_MORPHO_USDC_VAULT.address, BASE_MORPHO_WETH_VAULT.address, BASE_WETH.address],
+          [ACTION_FLAG_WRAP, ACTION_FLAG_SWAP, ACTION_FLAG_UNWRAP],
+          [BASE_MORPHO_USDC_VAULT.address, ZERO_ADDRESS, BASE_MORPHO_WETH_VAULT.address]
+        )
+
+        console.log('Initial USDC balance:', (await usdcContract.balanceOf(bob.address)).toString())
+        console.log('Initial WETH balance:', (await wethContract.balanceOf(bob.address)).toString())
+
+        planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [BASE_USDC.address, router.address, amountInUSDC])
+        planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_IN, [
+          MSG_SENDER,
+          amountInUSDC,
+          minAmountOutWETH,
+          path,
+          SOURCE_ROUTER, // Router has the funds after PERMIT2_TRANSFER_FROM
+        ])
+
+        const { wethBalanceBefore, wethBalanceAfter, usdcBalanceAfter, usdcBalanceBefore } = await executeRouter(
+          planner,
+          bob,
+          router,
+          wethContract,
+          daiContract,
+          usdcContract,
+          undefined,
+          DEX.ALGEBRA_INTEGRAL
+        )
+
+        console.log('Final USDC balance:', usdcBalanceAfter.toString())
+        console.log('Final WETH balance:', wethBalanceAfter.toString())
+        console.log('WETH received:', wethBalanceAfter.sub(wethBalanceBefore).toString())
+
+        expect(wethBalanceAfter.sub(wethBalanceBefore)).to.be.gte(minAmountOutWETH)
+        expect(usdcBalanceBefore.sub(usdcBalanceAfter)).to.be.eq(amountInUSDC)
+
+        // Verify router has no leftover balances
+        expect(await usdcContract.balanceOf(router.address)).to.eq(0)
+        expect(await wethContract.balanceOf(router.address)).to.eq(0)
+        expect(await morphoUSDCContract.balanceOf(router.address)).to.eq(0)
+        expect(await morphoWETHContract.balanceOf(router.address)).to.eq(0)
+      })
+    })
   })
 })

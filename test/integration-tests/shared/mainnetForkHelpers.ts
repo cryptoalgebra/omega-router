@@ -63,7 +63,26 @@ export const BASE_WA_WETH = new Token(
   'Wrapped Aave WETH'
 )
 
+// Morpho Vaults on Base
+export const BASE_MORPHO_USDC_VAULT = new Token(
+  8453,
+  '0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A',
+  6,
+  'mUSDC',
+  'Morpho USDC Vault'
+)
+export const BASE_MORPHO_WETH_VAULT = new Token(
+  8453,
+  '0xa0E430870c4604CcfC7B38Ca7845B1FF653D0ff1',
+  18,
+  'mWETH',
+  'Morpho WETH Vault'
+)
+
+// Whale addresses on Base
 export const BASE_DAI_WHALE = '0x0772f014009162efB833eF34d3eA3f243FC735Ba'
+export const BASE_USDC_WHALE = '0x4d91619a02B55a817930f22C444560933dabF7Cd' 
+export const BASE_WETH_WHALE = '0xecbf6e57d9430b8F79927e6109183846fab55D25'
 
 export interface MethodParameters {
   /**
