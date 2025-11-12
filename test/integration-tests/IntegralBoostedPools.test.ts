@@ -349,6 +349,33 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       tokenId = integralPosEventArgs![0].tokenId
     })
 
+    it('mint position with wrap', async () => {
+      expect(tokenId).to.be.gt(0)
+
+      const position = await INTEGRAL_NFT_POSITION_MANAGER.connect(bob).positions(tokenId)
+      expect(position.liquidity).to.be.gt(0)
+      expect(position.token0).to.equal(BASE_WM_USDC.address)
+      expect(position.token1).to.equal(BASE_WA_WETH.address)
+
+      planner = new RoutePlanner()
+      planner.addCommand(CommandType.ERC4626_UNWRAP, [wWETHContract.address, bob.address, CONTRACT_BALANCE, 0])
+      planner.addCommand(CommandType.ERC4626_UNWRAP, [wUSDCContract.address, bob.address, CONTRACT_BALANCE, 0])
+      
+      await executeRouter(
+        planner,
+        bob,
+        router,
+        wethContract,
+        daiContract,
+        usdcContract,
+        undefined,
+        DEX.ALGEBRA_INTEGRAL
+      )
+
+      expect(await wUSDCContract.balanceOf(router.address)).to.equal(0)
+      expect(await wWETHContract.balanceOf(router.address)).to.equal(0)
+    })
+
     it('collect fees with unwrap', async () => {
       await swapUSDCtoWETH()
       await swapWETHtoUSDC()
