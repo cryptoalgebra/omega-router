@@ -39,6 +39,31 @@ abstract contract IntegralPositions is AlgebraImmutables, Permit2Payments {
         INonfungiblePositionManager(ALGEBRA_INTEGRAL_POSITION_MANAGER).mint(params);
     }
 
+    /// @notice Performs an Algebra Integral increaseLiquidity operation via Nonfungible Position Manager
+    /// @param params The params necessary to increase liquidity, encoded as `IncreaseLiquidityParams`
+    function integralIncreaseLiquidity(INonfungiblePositionManager.IncreaseLiquidityParams memory params) internal {
+        // fetch token0 and token1 for the given tokenId
+        (, , address token0, address token1, , , , , , , , ) =
+            INonfungiblePositionManager(ALGEBRA_INTEGRAL_POSITION_MANAGER).positions(params.tokenId);
+
+        // use amountDesired == ActionConstants.CONTRACT_BALANCE as a flag to add liquidity using the entire balance of the contract
+        if (params.amount0Desired == ActionConstants.CONTRACT_BALANCE) {
+            params.amount0Desired = IERC20(token0).balanceOf(address(this));
+        }
+        if (params.amount1Desired == ActionConstants.CONTRACT_BALANCE) {
+            params.amount1Desired = IERC20(token1).balanceOf(address(this));
+        }
+
+        if (params.amount0Desired > 0) {
+            IERC20(token0).forceApprove(ALGEBRA_INTEGRAL_POSITION_MANAGER, params.amount0Desired);
+        }
+        if (params.amount1Desired > 0) {
+            IERC20(token1).forceApprove(ALGEBRA_INTEGRAL_POSITION_MANAGER, params.amount1Desired);
+        }
+
+        INonfungiblePositionManager(ALGEBRA_INTEGRAL_POSITION_MANAGER).increaseLiquidity(params);
+    }
+
     /// @dev check that a call is to the ERC721 permit function
     function _checkV3PermitCall(bytes calldata inputs) internal pure {
         bytes4 selector;

@@ -334,11 +334,25 @@ abstract contract Dispatcher is
                     params.recipient = map(params.recipient);
 
                     integralMint(params);
+                } else if (command == Commands.INTEGRAL_INCREASE_LIQUIDITY) {
+                    // equivalent: abi.decode(inputs, (uint256, uint256, uint256, uint256, uint256, uint256)) -> IncreaseLiquidityParams
+                    INonfungiblePositionManager.IncreaseLiquidityParams memory incParams;
+
+                    assembly {
+                        mstore(incParams, calldataload(inputs.offset)) // tokenId
+                        mstore(add(incParams, 0x20), calldataload(add(inputs.offset, 0x20))) // amount0Desired
+                        mstore(add(incParams, 0x40), calldataload(add(inputs.offset, 0x40))) // amount1Desired
+                        mstore(add(incParams, 0x60), calldataload(add(inputs.offset, 0x60))) // amount0Min
+                        mstore(add(incParams, 0x80), calldataload(add(inputs.offset, 0x80))) // amount1Min
+                        mstore(add(incParams, 0xa0), calldataload(add(inputs.offset, 0xa0))) // deadline
+                    }
+
+                    integralIncreaseLiquidity(incParams);
                 } else if (command == Commands.INTEGRAL_POSITION_MANAGER_PERMIT) {
                     _checkV3PermitCall(inputs);
                     (success, output) = address(ALGEBRA_INTEGRAL_POSITION_MANAGER).call(inputs);
                 } else {
-                    // placeholder area for commands 0x15-0x20
+                    // placeholder area for commands 0x16-0x20
                     revert InvalidCommandType(command);
                 }
             }
