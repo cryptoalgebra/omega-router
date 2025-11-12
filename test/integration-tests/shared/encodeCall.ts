@@ -3,6 +3,7 @@ import { BigNumber } from 'ethers'
 
 const permitSignature = 'permit(address,uint256,uint256,uint8,bytes32,bytes32)'
 const decreaseLiquidityFunctionSignature = 'decreaseLiquidity((uint256,uint128,uint256,uint256,uint256))'
+const increaseLiquidityFunctionSignature = 'increaseLiquidity((uint256,uint256,uint256,uint256,uint256,uint256))'
 const collectFunctionSignature = 'collect((uint256,address,uint128,uint128))'
 const burnFunctionSignature = 'burn(uint256)'
 
@@ -12,6 +13,8 @@ const permitSignatureV4 = 'permit(address,uint256,uint256,uint256,bytes)'
 
 const DECREASE_LIQUIDITY_STRUCT =
   '(uint256 tokenId,uint256 liquidity,uint256 amount0Min,uint256 amount1Min,uint256 deadline)'
+const INCREASE_LIQUIDITY_STRUCT =
+  '(uint256 tokenId,uint256 amount0Desired,uint256 amount1Desired,uint256 amount0Min,uint256 amount1Min,uint256 deadline)'
 const COLLECT_STRUCT = '(uint256 tokenId,address recipient,uint256 amount0Max,uint256 amount1Max)'
 
 interface ERC721PermitParams {
@@ -26,6 +29,15 @@ interface ERC721PermitParams {
 interface DecreaseLiquidityParams {
   tokenId: ethers.BigNumber
   liquidity: ethers.BigNumber
+  amount0Min: number
+  amount1Min: number
+  deadline: string
+}
+
+interface IncreaseLiquidityParams {
+  tokenId: ethers.BigNumber
+  amount0Desired: ethers.BigNumber
+  amount1Desired: ethers.BigNumber
   amount0Min: number
   amount1Min: number
   deadline: string
@@ -71,6 +83,14 @@ const encodeDecreaseLiquidity = (params: DecreaseLiquidityParams): string => {
   return encodedCall
 }
 
+const encodeIncreaseLiquidity = (params: IncreaseLiquidityParams): string => {
+  const abi = new ethers.utils.AbiCoder()
+  const encodedParams = abi.encode([INCREASE_LIQUIDITY_STRUCT], [params])
+  const functionSignature = ethers.utils.id(increaseLiquidityFunctionSignature).substring(0, 10)
+  const encodedCall = functionSignature + encodedParams.substring(2)
+  return encodedCall
+}
+
 const encodeCollect = (params: CollectParams): string => {
   const abi = new ethers.utils.AbiCoder()
   const encodedCollectParams = abi.encode([COLLECT_STRUCT], [params])
@@ -111,6 +131,7 @@ const encodeERC721PermitV4 = (params: ERC721PermitParamsV4): string => {
 export {
   encodeERC721Permit,
   encodeDecreaseLiquidity,
+  encodeIncreaseLiquidity,
   encodeCollect,
   encodeBurn,
   encodeModifyLiquidities,
