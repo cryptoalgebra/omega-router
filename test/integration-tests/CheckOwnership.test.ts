@@ -1,11 +1,11 @@
 import { CommandType, RoutePlanner } from './shared/planner'
 import { expect } from './shared/expect'
-import { UniversalRouter } from '../../typechain'
+import { OmegaRouter } from '../../typechain'
 import { resetFork, MAINNET_USDC } from './shared/mainnetForkHelpers'
 import { MAINNET_ALICE_ADDRESS, DEADLINE } from './shared/constants'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import hre from 'hardhat'
-import deployUniversalRouter from './shared/deployUniversalRouter'
+import deployOmegaRouter from './shared/deployOmegaRouter'
 import { findCustomErrorSelector } from './shared/parseEvents'
 import { BigNumber, Contract } from 'ethers'
 import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
@@ -13,7 +13,7 @@ const { ethers } = hre
 
 describe('Check Ownership', () => {
   let alice: SignerWithAddress
-  let router: UniversalRouter
+  let router: OmegaRouter
   let planner: RoutePlanner
 
   describe('checks balance ERC20', () => {
@@ -27,7 +27,7 @@ describe('Check Ownership', () => {
         params: [MAINNET_ALICE_ADDRESS],
       })
       alice = await ethers.getSigner(MAINNET_ALICE_ADDRESS)
-      router = (await deployUniversalRouter()).connect(alice) as UniversalRouter
+      router = (await deployOmegaRouter()).connect(alice) as OmegaRouter
       usdcContract = new ethers.Contract(MAINNET_USDC.address, TOKEN_ABI, alice)
       aliceUSDCBalance = await usdcContract.balanceOf(MAINNET_ALICE_ADDRESS)
       planner = new RoutePlanner()

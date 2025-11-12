@@ -5,11 +5,11 @@ import 'forge-std/console2.sol';
 import 'forge-std/Script.sol';
 import {RouterParameters} from 'contracts/types/RouterParameters.sol';
 import {UnsupportedProtocol} from 'contracts/deploy/UnsupportedProtocol.sol';
-import {UniversalRouter} from 'contracts/UniversalRouter.sol';
+import {OmegaRouter} from 'contracts/OmegaRouter.sol';
 
 bytes32 constant SALT = bytes32(uint256(0x00000000000000000000000000000000000000005eb67581652632000a6cbedf));
 
-abstract contract DeployUniversalRouter is Script {
+abstract contract DeployOmegaRouter is Script {
     RouterParameters internal params;
     address internal unsupported;
 
@@ -21,7 +21,7 @@ abstract contract DeployUniversalRouter is Script {
     // set values for params and unsupported
     function setUp() public virtual;
 
-    function run() external returns (UniversalRouter router) {
+    function run() external returns (OmegaRouter router) {
         vm.startBroadcast();
 
         // deploy permit2 if it isnt yet deployed
@@ -48,8 +48,8 @@ abstract contract DeployUniversalRouter is Script {
 
         logParams();
 
-        router = new UniversalRouter(params);
-        console2.log('Universal Router Deployed:', address(router));
+        router = new OmegaRouter(params);
+        console2.log('Omega Router Deployed:', address(router));
         vm.stopBroadcast();
     }
 

@@ -1,12 +1,12 @@
 import type { Contract } from '@ethersproject/contracts'
-import { UniversalRouter } from '../../../typechain'
+import { OmegaRouter } from '../../../typechain'
 import { abi as TOKEN_ABI } from '../../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
 import { resetFork, MAINNET_DAI, MAINNET_WETH } from '../shared/mainnetForkHelpers'
 import { MAINNET_ALICE_ADDRESS, DEADLINE, ETH_ADDRESS, ONE_PERCENT_BIPS } from '../shared/constants'
 import { expandTo18DecimalsBN } from '../shared/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import hre from 'hardhat'
-import deployUniversalRouter from '../shared/deployUniversalRouter'
+import deployOmegaRouter from '../shared/deployOmegaRouter'
 import { RoutePlanner, CommandType } from '../shared/planner'
 import snapshotGasCost from '@uniswap/snapshot-gas-cost'
 const { ethers } = hre
@@ -17,7 +17,7 @@ import { ADDRESS_THIS } from '../shared/constants'
 describe('Payments Gas Tests', () => {
   let alice: SignerWithAddress
   let bob: SignerWithAddress
-  let router: UniversalRouter
+  let router: OmegaRouter
   let daiContract: Contract
   let wethContract: Contract
   let planner: RoutePlanner
@@ -32,7 +32,7 @@ describe('Payments Gas Tests', () => {
     bob = (await ethers.getSigners())[1]
     daiContract = new ethers.Contract(MAINNET_DAI.address, TOKEN_ABI, alice)
     wethContract = new ethers.Contract(MAINNET_WETH.address, new ethers.utils.Interface(WETH_ABI.abi), alice)
-    router = (await deployUniversalRouter()).connect(alice) as UniversalRouter
+    router = (await deployOmegaRouter()).connect(alice) as OmegaRouter
     planner = new RoutePlanner()
   })
 

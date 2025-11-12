@@ -2,7 +2,7 @@ import type { Contract } from '@ethersproject/contracts'
 import { Pair } from '@uniswap/v2-sdk'
 import { expect } from './shared/expect'
 import { BigNumber } from 'ethers'
-import { IPermit2, UniversalRouter } from '../../typechain'
+import { IPermit2, OmegaRouter } from '../../typechain'
 import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
 import { resetFork, MAINNET_WETH, MAINNET_DAI, MAINNET_USDC, PERMIT2 } from './shared/mainnetForkHelpers'
 import {
@@ -19,7 +19,7 @@ import {
 } from './shared/constants'
 import { expandTo18DecimalsBN, expandTo6DecimalsBN } from './shared/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import deployUniversalRouter from './shared/deployUniversalRouter'
+import deployOmegaRouter from './shared/deployOmegaRouter'
 import { RoutePlanner, CommandType } from './shared/planner'
 import hre from 'hardhat'
 import { executeRouter } from './shared/executeRouter'
@@ -29,7 +29,7 @@ const { ethers } = hre
 describe('Uniswap V2 Tests:', () => {
   let alice: SignerWithAddress
   let bob: SignerWithAddress
-  let router: UniversalRouter
+  let router: OmegaRouter
   let permit2: IPermit2
   let daiContract: Contract
   let wethContract: Contract
@@ -50,7 +50,7 @@ describe('Uniswap V2 Tests:', () => {
     wethContract = new ethers.Contract(MAINNET_WETH.address, TOKEN_ABI, bob)
     usdcContract = new ethers.Contract(MAINNET_USDC.address, TOKEN_ABI, bob)
     permit2 = PERMIT2.connect(bob) as IPermit2
-    router = (await deployUniversalRouter()) as UniversalRouter
+    router = (await deployOmegaRouter()) as OmegaRouter
     planner = new RoutePlanner()
 
     // alice gives bob some tokens

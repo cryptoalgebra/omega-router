@@ -1,17 +1,17 @@
 import { CommandType, RoutePlanner } from '../shared/planner'
-import { UniversalRouter } from '../../../typechain'
+import { OmegaRouter } from '../../../typechain'
 import snapshotGasCost from '@uniswap/snapshot-gas-cost'
 import { resetFork, MAINNET_USDC } from '../shared/mainnetForkHelpers'
 import { MAINNET_ALICE_ADDRESS, DEADLINE } from '../shared/constants'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import hre from 'hardhat'
-import deployUniversalRouter from '../shared/deployUniversalRouter'
+import deployOmegaRouter from '../shared/deployOmegaRouter'
 import { abi as TOKEN_ABI } from '../../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
 const { ethers } = hre
 
 describe('Check Ownership Gas', () => {
   let alice: SignerWithAddress
-  let router: UniversalRouter
+  let router: OmegaRouter
   let planner: RoutePlanner
 
   beforeEach(async () => {
@@ -21,7 +21,7 @@ describe('Check Ownership Gas', () => {
       params: [MAINNET_ALICE_ADDRESS],
     })
     alice = await ethers.getSigner(MAINNET_ALICE_ADDRESS)
-    router = (await deployUniversalRouter()).connect(alice) as UniversalRouter
+    router = (await deployOmegaRouter()).connect(alice) as OmegaRouter
     planner = new RoutePlanner()
   })
 

@@ -22,10 +22,10 @@ import {
 import { MAINNET_ALICE_ADDRESS, DEADLINE, MAX_UINT, MAX_UINT160, SOURCE_MSG_SENDER } from '../shared/constants'
 import { expandTo6DecimalsBN } from '../shared/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import deployUniversalRouter from '../shared/deployUniversalRouter'
+import deployOmegaRouter from '../shared/deployOmegaRouter'
 import { RoutePlanner, CommandType } from '../shared/planner'
 import hre from 'hardhat'
-import { UniversalRouter, ERC20__factory, ERC20, IPermit2 } from '../../../typechain'
+import { OmegaRouter, ERC20__factory, ERC20, IPermit2 } from '../../../typechain'
 import { getPermitSignature, PermitSingle } from '../shared/protocolHelpers/permit2'
 import { CurrencyAmount, Percent, Token, TradeType } from '@uniswap/sdk-core'
 import snapshotGasCost from '@uniswap/snapshot-gas-cost'
@@ -35,7 +35,7 @@ const { ethers } = hre
 describe('Uniswap UX Tests gas:', () => {
   let alice: SignerWithAddress
   let bob: SignerWithAddress
-  let router: UniversalRouter
+  let router: OmegaRouter
 
   let permit2: IPermit2
   let usdcContract: ERC20
@@ -59,7 +59,7 @@ describe('Uniswap UX Tests gas:', () => {
     usdcContract = ERC20__factory.connect(MAINNET_USDC.address, alice)
 
     permit2 = PERMIT2.connect(alice) as IPermit2
-    router = (await deployUniversalRouter()).connect(bob) as UniversalRouter
+    router = (await deployOmegaRouter()).connect(bob) as OmegaRouter
 
     planner = new RoutePlanner()
 
@@ -156,10 +156,10 @@ describe('Uniswap UX Tests gas:', () => {
     }
   })
 
-  async function executeTradeUniversalRouter(
+  async function executeTradeOmegaRouter(
     planner: RoutePlanner,
     trade: Trade<Token, Token, TradeType.EXACT_INPUT>,
-    overrideRouter?: UniversalRouter
+    overrideRouter?: OmegaRouter
   ): Promise<BigNumber> {
     for (let i = 0; i < trade.swaps.length; i++) {
       let swap = trade.swaps[i]
@@ -223,7 +223,7 @@ describe('Uniswap UX Tests gas:', () => {
         const sig = await getPermitSignature(SIMPLE_SWAP_PERMIT, bob, permit2)
         planner.addCommand(CommandType.PERMIT2_PERMIT, [SIMPLE_SWAP_PERMIT, sig])
 
-        const gasUsed = await executeTradeUniversalRouter(planner, SIMPLE_SWAP)
+        const gasUsed = await executeTradeOmegaRouter(planner, SIMPLE_SWAP)
 
         await snapshotGasCost(approvePermit2Gas.add(gasUsed))
       })
@@ -232,7 +232,7 @@ describe('Uniswap UX Tests gas:', () => {
         const sig = await getPermitSignature(MAX_PERMIT, bob, permit2)
         planner.addCommand(CommandType.PERMIT2_PERMIT, [MAX_PERMIT, sig])
 
-        const gasUsed = await executeTradeUniversalRouter(planner, SIMPLE_SWAP)
+        const gasUsed = await executeTradeOmegaRouter(planner, SIMPLE_SWAP)
 
         await snapshotGasCost(approvePermit2Gas.add(gasUsed))
       })
@@ -257,7 +257,7 @@ describe('Uniswap UX Tests gas:', () => {
         const sig = await getPermitSignature(COMPLEX_SWAP_PERMIT, bob, permit2)
         planner.addCommand(CommandType.PERMIT2_PERMIT, [COMPLEX_SWAP_PERMIT, sig])
 
-        const gasUsed = await executeTradeUniversalRouter(planner, COMPLEX_SWAP)
+        const gasUsed = await executeTradeOmegaRouter(planner, COMPLEX_SWAP)
 
         await snapshotGasCost(approvePermit2Gas.add(gasUsed))
       })
@@ -268,7 +268,7 @@ describe('Uniswap UX Tests gas:', () => {
 
         planner.addCommand(CommandType.PERMIT2_PERMIT, [MAX_PERMIT, sig])
 
-        const gasUsed = await executeTradeUniversalRouter(planner, COMPLEX_SWAP)
+        const gasUsed = await executeTradeOmegaRouter(planner, COMPLEX_SWAP)
 
         await snapshotGasCost(approvePermit2Gas.add(gasUsed))
       })
@@ -311,7 +311,7 @@ describe('Uniswap UX Tests gas:', () => {
         // Swap 1: complex
         let sig = await getPermitSignature(COMPLEX_SWAP_PERMIT, bob, permit2)
         planner.addCommand(CommandType.PERMIT2_PERMIT, [COMPLEX_SWAP_PERMIT, sig])
-        let gasUsed = await executeTradeUniversalRouter(planner, COMPLEX_SWAP)
+        let gasUsed = await executeTradeOmegaRouter(planner, COMPLEX_SWAP)
 
         totalGas = totalGas.add(gasUsed)
         planner = new RoutePlanner()
@@ -319,7 +319,7 @@ describe('Uniswap UX Tests gas:', () => {
         // Swap 2: complex
         sig = await getPermitSignature(COMPLEX_SWAP_PERMIT, bob, permit2)
         planner.addCommand(CommandType.PERMIT2_PERMIT, [COMPLEX_SWAP_PERMIT, sig])
-        gasUsed = await executeTradeUniversalRouter(planner, COMPLEX_SWAP)
+        gasUsed = await executeTradeOmegaRouter(planner, COMPLEX_SWAP)
 
         totalGas = totalGas.add(gasUsed)
         planner = new RoutePlanner()
@@ -327,7 +327,7 @@ describe('Uniswap UX Tests gas:', () => {
         // Swap 3: simple
         sig = await getPermitSignature(SIMPLE_SWAP_PERMIT, bob, permit2)
         planner.addCommand(CommandType.PERMIT2_PERMIT, [SIMPLE_SWAP_PERMIT, sig])
-        gasUsed = await executeTradeUniversalRouter(planner, SIMPLE_SWAP)
+        gasUsed = await executeTradeOmegaRouter(planner, SIMPLE_SWAP)
 
         totalGas = totalGas.add(gasUsed)
         await snapshotGasCost(totalGas)
@@ -339,19 +339,19 @@ describe('Uniswap UX Tests gas:', () => {
         // Swap 1: complex, but give max approval no more approvals needed
         let sig = await getPermitSignature(MAX_PERMIT, bob, permit2)
         planner.addCommand(CommandType.PERMIT2_PERMIT, [MAX_PERMIT, sig])
-        let gasUsed = await executeTradeUniversalRouter(planner, COMPLEX_SWAP)
+        let gasUsed = await executeTradeOmegaRouter(planner, COMPLEX_SWAP)
 
         totalGas = totalGas.add(gasUsed)
         planner = new RoutePlanner()
 
         // Swap 2: complex
-        gasUsed = await executeTradeUniversalRouter(planner, COMPLEX_SWAP)
+        gasUsed = await executeTradeOmegaRouter(planner, COMPLEX_SWAP)
 
         totalGas = totalGas.add(gasUsed)
         planner = new RoutePlanner()
 
         // Swap 3: simple
-        gasUsed = await executeTradeUniversalRouter(planner, SIMPLE_SWAP)
+        gasUsed = await executeTradeOmegaRouter(planner, SIMPLE_SWAP)
 
         totalGas = totalGas.add(gasUsed)
         await snapshotGasCost(totalGas)
@@ -398,7 +398,7 @@ describe('Uniswap UX Tests gas:', () => {
         for (let i = 0; i < 5; i++) {
           sig = await getPermitSignature(COMPLEX_SWAP_PERMIT, bob, permit2)
           planner.addCommand(CommandType.PERMIT2_PERMIT, [COMPLEX_SWAP_PERMIT, sig])
-          gasUsed = await executeTradeUniversalRouter(planner, COMPLEX_SWAP)
+          gasUsed = await executeTradeOmegaRouter(planner, COMPLEX_SWAP)
 
           totalGas = totalGas.add(gasUsed)
           planner = new RoutePlanner()
@@ -408,7 +408,7 @@ describe('Uniswap UX Tests gas:', () => {
         for (let i = 0; i < 5; i++) {
           sig = await getPermitSignature(SIMPLE_SWAP_PERMIT, bob, permit2)
           planner.addCommand(CommandType.PERMIT2_PERMIT, [SIMPLE_SWAP_PERMIT, sig])
-          gasUsed = await executeTradeUniversalRouter(planner, SIMPLE_SWAP)
+          gasUsed = await executeTradeOmegaRouter(planner, SIMPLE_SWAP)
 
           totalGas = totalGas.add(gasUsed)
           planner = new RoutePlanner()
@@ -427,14 +427,14 @@ describe('Uniswap UX Tests gas:', () => {
 
         // Do 5 complex swaps
         for (let i = 0; i < 5; i++) {
-          gasUsed = await executeTradeUniversalRouter(planner, COMPLEX_SWAP)
+          gasUsed = await executeTradeOmegaRouter(planner, COMPLEX_SWAP)
           totalGas = totalGas.add(gasUsed)
           planner = new RoutePlanner()
         }
 
         // Do 5 simple swaps
         for (let i = 0; i < 5; i++) {
-          gasUsed = await executeTradeUniversalRouter(planner, SIMPLE_SWAP)
+          gasUsed = await executeTradeOmegaRouter(planner, SIMPLE_SWAP)
           totalGas = totalGas.add(gasUsed)
           planner = new RoutePlanner()
         }
@@ -466,7 +466,7 @@ describe('Uniswap UX Tests gas:', () => {
         }
 
         // Launch SwapRouter03
-        const router2 = (await deployUniversalRouter()).connect(bob) as UniversalRouter
+        const router2 = (await deployOmegaRouter()).connect(bob) as OmegaRouter
         const router2ApprovalTx = (await approveSwapRouter02(bob, MAINNET_USDC, router2.address))!
         totalGas = totalGas.add(router2ApprovalTx.gasUsed)
 
@@ -477,7 +477,7 @@ describe('Uniswap UX Tests gas:', () => {
         }
 
         // Launch SwapRouter04
-        const router3 = (await deployUniversalRouter()).connect(bob) as UniversalRouter
+        const router3 = (await deployOmegaRouter()).connect(bob) as OmegaRouter
         const router3ApprovalTx = (await approveSwapRouter02(bob, MAINNET_USDC, router3.address))!
         totalGas = totalGas.add(router3ApprovalTx.gasUsed)
 
@@ -499,35 +499,35 @@ describe('Uniswap UX Tests gas:', () => {
         for (let i = 0; i < 5; i++) {
           sig = await getPermitSignature(COMPLEX_SWAP_PERMIT, bob, permit2)
           planner.addCommand(CommandType.PERMIT2_PERMIT, [COMPLEX_SWAP_PERMIT, sig])
-          gasUsed = await executeTradeUniversalRouter(planner, COMPLEX_SWAP)
+          gasUsed = await executeTradeOmegaRouter(planner, COMPLEX_SWAP)
 
           totalGas = totalGas.add(gasUsed)
           planner = new RoutePlanner()
         }
 
-        // Launch Universal Router v2
-        const router2 = (await deployUniversalRouter()).connect(bob) as UniversalRouter
+        // Launch Omega Router v2
+        const router2 = (await deployOmegaRouter()).connect(bob) as OmegaRouter
 
         // Do 5 simple swaps
         for (let i = 0; i < 5; i++) {
           SIMPLE_SWAP_PERMIT.spender = router2.address
           sig = await getPermitSignature(SIMPLE_SWAP_PERMIT, bob, permit2)
           planner.addCommand(CommandType.PERMIT2_PERMIT, [SIMPLE_SWAP_PERMIT, sig])
-          gasUsed = await executeTradeUniversalRouter(planner, SIMPLE_SWAP, router2)
+          gasUsed = await executeTradeOmegaRouter(planner, SIMPLE_SWAP, router2)
 
           totalGas = totalGas.add(gasUsed)
           planner = new RoutePlanner()
         }
 
-        // Launch Universal Router v3
-        const router3 = (await deployUniversalRouter()).connect(bob) as UniversalRouter
+        // Launch Omega Router v3
+        const router3 = (await deployOmegaRouter()).connect(bob) as OmegaRouter
 
         // Do 5 simple swaps
         for (let i = 0; i < 5; i++) {
           SIMPLE_SWAP_PERMIT.spender = router3.address
           sig = await getPermitSignature(SIMPLE_SWAP_PERMIT, bob, permit2)
           planner.addCommand(CommandType.PERMIT2_PERMIT, [SIMPLE_SWAP_PERMIT, sig])
-          gasUsed = await executeTradeUniversalRouter(planner, SIMPLE_SWAP, router3)
+          gasUsed = await executeTradeOmegaRouter(planner, SIMPLE_SWAP, router3)
 
           totalGas = totalGas.add(gasUsed)
           planner = new RoutePlanner()
@@ -546,33 +546,33 @@ describe('Uniswap UX Tests gas:', () => {
 
         // Do 5 complex swaps
         for (let i = 0; i < 5; i++) {
-          gasUsed = await executeTradeUniversalRouter(planner, COMPLEX_SWAP)
+          gasUsed = await executeTradeOmegaRouter(planner, COMPLEX_SWAP)
           totalGas = totalGas.add(gasUsed)
           planner = new RoutePlanner()
         }
 
-        // Launch Universal Router v2
-        const router2 = (await deployUniversalRouter()).connect(bob) as UniversalRouter
+        // Launch Omega Router v2
+        const router2 = (await deployOmegaRouter()).connect(bob) as OmegaRouter
         MAX_PERMIT.spender = router2.address
         let calldata2 = await getPermitSignature(MAX_PERMIT, bob, permit2)
         planner.addCommand(CommandType.PERMIT2_PERMIT, [MAX_PERMIT, calldata2])
 
         // Do 5 simple swaps
         for (let i = 0; i < 5; i++) {
-          gasUsed = await executeTradeUniversalRouter(planner, SIMPLE_SWAP, router2)
+          gasUsed = await executeTradeOmegaRouter(planner, SIMPLE_SWAP, router2)
           totalGas = totalGas.add(gasUsed)
           planner = new RoutePlanner()
         }
 
-        // Launch Universal Router v3
-        const router3 = (await deployUniversalRouter()).connect(bob) as UniversalRouter
+        // Launch Omega Router v3
+        const router3 = (await deployOmegaRouter()).connect(bob) as OmegaRouter
         MAX_PERMIT.spender = router3.address
         let calldata3 = await getPermitSignature(MAX_PERMIT, bob, permit2)
         planner.addCommand(CommandType.PERMIT2_PERMIT, [MAX_PERMIT, calldata3])
 
         // Do 5 simple swaps
         for (let i = 0; i < 5; i++) {
-          gasUsed = await executeTradeUniversalRouter(planner, SIMPLE_SWAP, router3)
+          gasUsed = await executeTradeOmegaRouter(planner, SIMPLE_SWAP, router3)
           totalGas = totalGas.add(gasUsed)
           planner = new RoutePlanner()
         }

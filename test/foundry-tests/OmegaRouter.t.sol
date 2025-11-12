@@ -2,7 +2,7 @@
 pragma solidity ^0.8.15;
 
 import 'forge-std/Test.sol';
-import {UniversalRouter} from '../../contracts/UniversalRouter.sol';
+import {OmegaRouter} from '../../contracts/OmegaRouter.sol';
 import {Payments} from '../../contracts/modules/Payments.sol';
 import {Constants} from '../../contracts/libraries/Constants.sol';
 import {Commands} from '../../contracts/libraries/Commands.sol';
@@ -13,11 +13,11 @@ import {ERC20} from 'solmate/src/tokens/ERC20.sol';
 import 'permit2/src/interfaces/IAllowanceTransfer.sol';
 import {IERC165} from '@openzeppelin/contracts/utils/introspection/IERC165.sol';
 
-contract UniversalRouterTest is Test {
+contract OmegaRouterTest is Test {
     address constant RECIPIENT = address(1234);
     uint256 constant AMOUNT = 10 ** 18;
 
-    UniversalRouter router;
+    OmegaRouter router;
     ExampleModule testModule;
     MockERC20 erc20;
 
@@ -34,7 +34,7 @@ contract UniversalRouterTest is Test {
             integralPoolInitCodeHash: bytes32(0),
             integralPosManager: address(0)
         });
-        router = new UniversalRouter(params);
+        router = new OmegaRouter(params);
         testModule = new ExampleModule();
         erc20 = new MockERC20();
     }

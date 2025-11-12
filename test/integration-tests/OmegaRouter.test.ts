@@ -1,10 +1,10 @@
-import { UniversalRouter, ERC20, IWETH, IPermit2 } from '../../typechain'
+import { OmegaRouter, ERC20, IWETH, IPermit2 } from '../../typechain'
 import { expect } from './shared/expect'
-import { abi as ROUTER_ABI } from '../../artifacts/contracts/UniversalRouter.sol/UniversalRouter.json'
+import { abi as ROUTER_ABI } from '../../artifacts/contracts/OmegaRouter.sol/OmegaRouter.json'
 import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
 import { abi as WETH_ABI } from '../../artifacts/contracts/interfaces/IWETH.sol/IWETH.json'
 
-import deployUniversalRouter from './shared/deployUniversalRouter'
+import deployOmegaRouter from './shared/deployOmegaRouter'
 import {
   ADDRESS_THIS,
   MAINNET_ALICE_ADDRESS,
@@ -23,9 +23,9 @@ import hre from 'hardhat'
 const { ethers } = hre
 const routerInterface = new ethers.utils.Interface(ROUTER_ABI)
 
-describe('UniversalRouter', () => {
+describe('OmegaRouter', () => {
   let alice: SignerWithAddress
-  let router: UniversalRouter
+  let router: OmegaRouter
   let permit2: IPermit2
   let daiContract: ERC20
   let wethContract: IWETH
@@ -41,7 +41,7 @@ describe('UniversalRouter', () => {
     daiContract = new ethers.Contract(MAINNET_DAI.address, TOKEN_ABI, alice) as ERC20
     wethContract = new ethers.Contract(MAINNET_WETH.address, WETH_ABI, alice) as IWETH
     permit2 = PERMIT2.connect(alice) as IPermit2
-    router = (await deployUniversalRouter()).connect(alice) as UniversalRouter
+    router = (await deployOmegaRouter()).connect(alice) as OmegaRouter
   })
 
   describe('#execute', () => {
@@ -116,7 +116,7 @@ describe('UniversalRouter', () => {
       const sweepCalldata = routerInterface.encodeFunctionData('execute(bytes,bytes[])', [commands, inputs])
 
       const reentrantWETH = await (await ethers.getContractFactory('ReenteringWETH')).deploy()
-      router = (await deployUniversalRouter(reentrantWETH.address)).connect(alice) as UniversalRouter
+      router = (await deployOmegaRouter(reentrantWETH.address)).connect(alice) as OmegaRouter
       await reentrantWETH.setParameters(router.address, sweepCalldata)
 
       planner = new RoutePlanner()
@@ -132,7 +132,7 @@ describe('UniversalRouter', () => {
   })
 })
 
-describe('UniversalRouter', () => {
+describe('OmegaRouter', () => {
   describe('partial fills', async () => {
     let planner: RoutePlanner
 
