@@ -37,7 +37,7 @@ import { DEX, executeRouter, ExecutionParams } from './shared/executeRouter'
 import { ADDRESS_ZERO } from '@uniswap/v3-sdk'
 import { encodePriceSqrt } from '../../lib/v3-periphery/test/shared/encodePriceSqrt'
 import { getMaxTick, getMinTick } from '../../lib/v3-periphery/test/shared/ticks'
-import {encodeCollect, encodeDecreaseLiquidity, encodeERC721Permit} from './shared/encodeCall'
+import { encodeCollect, encodeDecreaseLiquidity, encodeERC721Permit } from './shared/encodeCall'
 import getPermitNFTSignature from './shared/getPermitNFTSignature'
 
 const { ethers } = hre
@@ -289,7 +289,6 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
     beforeEach('provide liquidity', async () => {
       const ethToWeth = BigNumber.from(await wWETHContract.previewDeposit(expandTo18DecimalsBN(1)))
       const usdcToWusdc = BigNumber.from(await wUSDCContract.previewDeposit(expandTo6DecimalsBN(4200)))
-
       await INTEGRAL_NFT_POSITION_MANAGER.connect(bob).createAndInitializePoolIfNecessary(
         wUSDCContract.address,
         wWETHContract.address,
@@ -350,6 +349,33 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       tokenId = integralPosEventArgs![0].tokenId
     })
 
+    it('mint position with wrap', async () => {
+      expect(tokenId).to.be.gt(0)
+
+      const position = await INTEGRAL_NFT_POSITION_MANAGER.connect(bob).positions(tokenId)
+      expect(position.liquidity).to.be.gt(0)
+      expect(position.token0).to.equal(BASE_WM_USDC.address)
+      expect(position.token1).to.equal(BASE_WA_WETH.address)
+
+      planner = new RoutePlanner()
+      planner.addCommand(CommandType.ERC4626_UNWRAP, [wWETHContract.address, bob.address, CONTRACT_BALANCE, 0])
+      planner.addCommand(CommandType.ERC4626_UNWRAP, [wUSDCContract.address, bob.address, CONTRACT_BALANCE, 0])
+      
+      await executeRouter(
+        planner,
+        bob,
+        router,
+        wethContract,
+        daiContract,
+        usdcContract,
+        undefined,
+        DEX.ALGEBRA_INTEGRAL
+      )
+
+      expect(await wUSDCContract.balanceOf(router.address)).to.equal(0)
+      expect(await wWETHContract.balanceOf(router.address)).to.equal(0)
+    })
+
     it('collect fees with unwrap', async () => {
       await swapUSDCtoWETH()
       await swapWETHtoUSDC()
@@ -385,14 +411,13 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       const encodedDecreaseCall = decreaseLiquidity()
       const encodedCollectCall = collect(router.address)
 
-      console.log(await wWETHContract.balanceOf(router.address))
       planner.addCommand(CommandType.INTEGRAL_POSITION_MANAGER_PERMIT, [encodedErc721PermitCall])
       planner.addCommand(CommandType.INTEGRAL_POSITION_MANAGER_CALL, [encodedDecreaseCall])
       planner.addCommand(CommandType.INTEGRAL_POSITION_MANAGER_CALL, [encodedCollectCall])
       planner.addCommand(CommandType.ERC4626_UNWRAP, [wWETHContract.address, vault.address, CONTRACT_BALANCE, 0])
       planner.addCommand(CommandType.ERC4626_UNWRAP, [wUSDCContract.address, vault.address, CONTRACT_BALANCE, 0])
 
-      const {integralPosEventArgs} = await executeRouter(
+      await executeRouter(
         planner,
         bob,
         router,
@@ -403,10 +428,53 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
         DEX.ALGEBRA_INTEGRAL
       )
 
-      console.log(integralPosEventArgs)
-
       expect(await usdcContract.balanceOf(vault.address)).to.be.approximately(expandTo6DecimalsBN(4200), 10)
-      expect(await wethContract.balanceOf(vault.address)).to.be.approximately(expandTo18DecimalsBN(1), 10)
+      expect(await wethContract.balanceOf(vault.address)).to.be.approximately(expandTo18DecimalsBN(1), 10**10)
+    })
+
+    it('increase liquidity with wrap', async () => {
+      const amountInUSDC = expandTo6DecimalsBN(100)
+      const amountInWETH = expandTo18DecimalsBN(0.02)
+
+      const ethToWeth = BigNumber.from(await wWETHContract.previewDeposit(amountInWETH))
+      const usdcToWusdc = BigNumber.from(await wUSDCContract.previewDeposit(amountInUSDC))
+
+      planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [BASE_USDC.address, router.address, amountInUSDC])
+      planner.addCommand(CommandType.PERMIT2_TRANSFER_FROM, [BASE_WETH.address, router.address, amountInWETH])
+      planner.addCommand(CommandType.ERC4626_WRAP, [
+        wUSDCContract.address,
+        usdcContract.address,
+        ADDRESS_THIS,
+        amountInUSDC,
+        usdcToWusdc.mul(99).div(100),
+      ])
+      planner.addCommand(CommandType.ERC4626_WRAP, [
+        wWETHContract.address,
+        wethContract.address,
+        ADDRESS_THIS,
+        amountInWETH,
+        ethToWeth.mul(99).div(100),
+      ])
+      planner.addCommand(CommandType.INTEGRAL_INCREASE_LIQUIDITY, [
+        [tokenId, CONTRACT_BALANCE, CONTRACT_BALANCE, 0, 0, DEADLINE],
+      ])
+
+      const positionBefore = await INTEGRAL_NFT_POSITION_MANAGER.connect(bob).positions(tokenId)
+
+      await executeRouter(
+        planner,
+        bob,
+        router,
+        wethContract,
+        daiContract,
+        usdcContract,
+        undefined,
+        DEX.ALGEBRA_INTEGRAL
+      )
+
+      const positionAfter = await INTEGRAL_NFT_POSITION_MANAGER.connect(bob).positions(tokenId)
+
+      expect(positionAfter.liquidity).to.be.gt(positionBefore.liquidity)
     })
   })
 })

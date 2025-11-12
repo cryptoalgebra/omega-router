@@ -29,6 +29,7 @@ export enum CommandType {
   INTEGRAL_POSITION_MANAGER_CALL = 0x12,
   INTEGRAL_MINT = 0x13,
   INTEGRAL_POSITION_MANAGER_PERMIT = 0x14,
+  INTEGRAL_INCREASE_LIQUIDITY = 0x15,
 
   EXECUTE_SUB_PLAN = 0x21,
 }
@@ -46,6 +47,9 @@ const PERMIT_STRUCT =
 
 const MINT_PARAMS =
   '(address token0,address token1,address deployer,int24 tickLower,int24 tickUpper,uint256 amount0Desired,uint256 amount1Desired,uint256 amount0Min,uint256 amount1Min,address recipient,uint256 deadline)'
+
+const INCREASE_LIQUIDITY_PARAMS =
+  '(uint256 tokenId,uint256 amount0Desired,uint256 amount1Desired,uint256 amount0Min,uint256 amount1Min,uint256 deadline)'
 
 const PERMIT_BATCH_STRUCT =
   '((address token,uint160 amount,uint48 expiration,uint48 nonce)[] details, address spender, uint256 sigDeadline)'
@@ -84,6 +88,7 @@ const ABI_DEFINITION: { [key in CommandType]: string[] } = {
   [CommandType.INTEGRAL_POSITION_MANAGER_CALL]: ['bytes'],
   [CommandType.INTEGRAL_MINT]: [MINT_PARAMS],
   [CommandType.INTEGRAL_POSITION_MANAGER_PERMIT]: ['bytes'],
+  [CommandType.INTEGRAL_INCREASE_LIQUIDITY]: [INCREASE_LIQUIDITY_PARAMS],
 }
 
 export class RoutePlanner {
