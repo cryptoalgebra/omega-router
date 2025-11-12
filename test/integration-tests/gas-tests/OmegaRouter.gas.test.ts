@@ -1,16 +1,16 @@
-import { UniversalRouter } from '../../../typechain'
+import { OmegaRouter } from '../../../typechain'
 import { expect } from '../shared/expect'
 import { MAINNET_ALICE_ADDRESS } from '../shared/constants'
 import { resetFork } from '../shared/mainnetForkHelpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import hre from 'hardhat'
-import deployUniversalRouter from '../shared/deployUniversalRouter'
+import deployOmegaRouter from '../shared/deployOmegaRouter'
 
 const { ethers } = hre
 
-describe('UniversalRouter Gas Tests', () => {
+describe('OmegaRouter Gas Tests', () => {
   let alice: SignerWithAddress
-  let router: UniversalRouter
+  let router: OmegaRouter
 
   beforeEach(async () => {
     await resetFork()
@@ -19,7 +19,7 @@ describe('UniversalRouter Gas Tests', () => {
       method: 'hardhat_impersonateAccount',
       params: [MAINNET_ALICE_ADDRESS],
     })
-    router = (await deployUniversalRouter()).connect(alice) as UniversalRouter
+    router = (await deployOmegaRouter()).connect(alice) as OmegaRouter
   })
 
   it('gas: bytecode size', async () => {

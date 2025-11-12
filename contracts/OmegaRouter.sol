@@ -8,9 +8,9 @@ import {PaymentsImmutables, PaymentsParameters} from './modules/PaymentsImmutabl
 import {AlgebraImmutables, AlgebraParameters} from './modules/algebra/AlgebraImmutables.sol';
 import {UniswapImmutables, UniswapParameters} from './modules/uniswap/UniswapImmutables.sol';
 import {Commands} from './libraries/Commands.sol';
-import {IUniversalRouter} from './interfaces/IUniversalRouter.sol';
+import {IOmegaRouter} from './interfaces/IOmegaRouter.sol';
 
-contract UniversalRouter is IUniversalRouter, Dispatcher {
+contract OmegaRouter is IOmegaRouter, Dispatcher {
     constructor(RouterParameters memory params)
         AlgebraImmutables(
             AlgebraParameters(
@@ -41,7 +41,7 @@ contract UniversalRouter is IUniversalRouter, Dispatcher {
         if (msg.sender != address(WETH)) revert InvalidEthSender();
     }
 
-    /// @inheritdoc IUniversalRouter
+    /// @inheritdoc IOmegaRouter
     function execute(bytes calldata commands, bytes[] calldata inputs, uint256 deadline)
         external
         payable

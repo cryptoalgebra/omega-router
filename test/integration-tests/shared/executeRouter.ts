@@ -8,7 +8,7 @@ import {
   V2_EVENTS,
 } from './parseEvents'
 import { BigNumber, BigNumberish } from 'ethers'
-import { UniversalRouter } from '../../../typechain'
+import { OmegaRouter } from '../../../typechain'
 import { DEADLINE } from './constants'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { RoutePlanner } from './planner'
@@ -57,7 +57,7 @@ export enum DEX {
 export async function executeRouter(
   planner: RoutePlanner,
   caller: SignerWithAddress,
-  router: UniversalRouter,
+  router: OmegaRouter,
   wethContract: Contract,
   daiContract: Contract,
   usdcContract: Contract,

@@ -1,7 +1,7 @@
 import type { Contract } from '@ethersproject/contracts'
 import { expect } from './shared/expect'
 import { BigNumber, BigNumberish } from 'ethers'
-import { IPermit2, UniversalRouter } from '../../typechain'
+import { IPermit2, OmegaRouter } from '../../typechain'
 import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
 import { resetFork, BASE_WETH, BASE_USDC, BASE_DAI, PERMIT2, BASE_DAI_WHALE } from './shared/mainnetForkHelpers'
 import {
@@ -17,7 +17,7 @@ import {
 } from './shared/constants'
 import { expandTo18DecimalsBN, expandTo6DecimalsBN } from './shared/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import deployUniversalRouter from './shared/deployUniversalRouter'
+import deployOmegaRouter from './shared/deployOmegaRouter'
 import { RoutePlanner, CommandType } from './shared/planner'
 import hre from 'hardhat'
 import { encodePathExactInputIntegral, encodePathExactOutputIntegral } from './shared/swapRouter02Helpers'
@@ -28,7 +28,7 @@ const { ethers } = hre
 describe('Algebra Integral Tests:', () => {
   let alice: SignerWithAddress
   let bob: SignerWithAddress
-  let router: UniversalRouter
+  let router: OmegaRouter
   let permit2: IPermit2
   let usdcContract: Contract
   let wethContract: Contract
@@ -55,7 +55,7 @@ describe('Algebra Integral Tests:', () => {
     wethContract = new ethers.Contract(BASE_WETH.address, TOKEN_ABI, bob)
     daiContract = new ethers.Contract(BASE_DAI.address, TOKEN_ABI, bob)
     permit2 = PERMIT2.connect(bob) as IPermit2
-    router = (await deployUniversalRouter(BASE_WETH.address)) as UniversalRouter
+    router = (await deployOmegaRouter(BASE_WETH.address)) as OmegaRouter
     planner = new RoutePlanner()
 
     // alice gives bob some tokens

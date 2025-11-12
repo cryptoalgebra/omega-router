@@ -1,7 +1,7 @@
 import type { Contract } from '@ethersproject/contracts'
 import { expect } from './shared/expect'
 import { BigNumber } from 'ethers'
-import { IPermit2, UniversalRouter } from '../../typechain'
+import { IPermit2, OmegaRouter } from '../../typechain'
 import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
 import { abi as ERC4626_ABI } from '../../artifacts/@openzeppelin/contracts/interfaces/IERC4626.sol/IERC4626.json'
 import {
@@ -16,7 +16,7 @@ import {
 import { DEADLINE, MAX_UINT, MAX_UINT160, MSG_SENDER } from './shared/constants'
 import { expandTo6DecimalsBN } from './shared/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import deployUniversalRouter from './shared/deployUniversalRouter'
+import deployOmegaRouter from './shared/deployOmegaRouter'
 import { RoutePlanner, CommandType } from './shared/planner'
 import hre from 'hardhat'
 import { executeRouter } from './shared/executeRouter'
@@ -24,7 +24,7 @@ const { ethers } = hre
 
 describe('ERC4626 Wrap/Unwrap Tests:', () => {
   let bob: SignerWithAddress
-  let router: UniversalRouter
+  let router: OmegaRouter
   let permit2: IPermit2
   let daiContract: Contract
   let wethContract: Contract
@@ -41,7 +41,7 @@ describe('ERC4626 Wrap/Unwrap Tests:', () => {
     usdcContract = new ethers.Contract(MAINNET_USDC.address, TOKEN_ABI, bob)
     waUsdcContract = new ethers.Contract(MAINNET_WA_USDC.address, ERC4626_ABI, bob)
     permit2 = PERMIT2.connect(bob) as IPermit2
-    router = (await deployUniversalRouter(bob.address)) as UniversalRouter
+    router = (await deployOmegaRouter(bob.address)) as OmegaRouter
     planner = new RoutePlanner()
 
     const usdcWhale = await ethers.getSigner(MAINNET_USDC_WHALE)

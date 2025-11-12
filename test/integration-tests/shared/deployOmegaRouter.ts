@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 const { ethers } = hre
-import { UniversalRouter } from '../../../typechain'
+import { OmegaRouter } from '../../../typechain'
 import {
   UNISWAP_V2_FACTORY_MAINNET,
   UNISWAP_V3_FACTORY_MAINNET,
@@ -14,7 +14,7 @@ import {
 } from './constants'
 import { MAINNET_WETH } from './mainnetForkHelpers'
 
-export async function deployRouter(mockReentrantWETH?: string): Promise<UniversalRouter> {
+export async function deployRouter(mockReentrantWETH?: string): Promise<OmegaRouter> {
   const routerParameters = {
     permit2: PERMIT2_ADDRESS,
     weth: mockReentrantWETH ?? MAINNET_WETH.address,
@@ -28,8 +28,8 @@ export async function deployRouter(mockReentrantWETH?: string): Promise<Universa
     integralPoolInitCodeHash: INTEGRAL_INIT_CODE_HASH_MAINNET,
   }
 
-  const routerFactory = await ethers.getContractFactory('UniversalRouter')
-  const router = (await routerFactory.deploy(routerParameters)) as unknown as UniversalRouter
+  const routerFactory = await ethers.getContractFactory('OmegaRouter')
+  const router = (await routerFactory.deploy(routerParameters)) as unknown as OmegaRouter
   return router
 }
 

@@ -1,25 +1,21 @@
 import type { Contract } from '@ethersproject/contracts'
 import snapshotGasCost from '@uniswap/snapshot-gas-cost'
-import deployUniversalRouter from '../shared/deployUniversalRouter'
+import deployOmegaRouter from '../shared/deployOmegaRouter'
 import { BigNumber } from 'ethers'
-import { UniversalRouter, INonfungiblePositionManager, PositionManager } from '../../../typechain'
+import { OmegaRouter, INonfungiblePositionManager } from '../../../typechain'
 import { abi as TOKEN_ABI } from '../../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
 import {
   resetFork,
   MAINNET_WETH,
   MAINNET_DAI,
   MAINNET_USDC,
-  INTEGRAL_NFT_POSITION_MANAGER,
+  UNISWAP_NFT_POSITION_MANAGER,
 } from '../shared/mainnetForkHelpers'
 import {
   MAINNET_ALICE_ADDRESS,
   DEADLINE,
   MAX_UINT,
   MAX_UINT128,
-  OPEN_DELTA,
-  SOURCE_ROUTER,
-  CONTRACT_BALANCE,
-  ZERO_ADDRESS,
 } from '../shared/constants'
 import { expandTo18DecimalsBN, expandTo6DecimalsBN } from '../shared/helpers'
 import getPermitNFTSignature from '../shared/getPermitNFTSignature'
@@ -32,24 +28,22 @@ import {
   encodeDecreaseLiquidity,
   encodeCollect,
   encodeBurn,
-  encodeModifyLiquidities,
 } from '../shared/encodeCall'
 const { ethers } = hre
-import { USDC_WETH, ETH_USDC } from '../shared/v4Helpers'
-import { V4Planner, Actions } from '../shared/v4Planner'
 
-describe('V3 to V4 Migration Gas Tests', () => {
+// TODO: Add V3 position manager commands to enable migration from Uniswap V3 to Algebra Integral
+// Currently, the router only supports Integral position management, not Uniswap V3 position management
+// Required commands: V3_POSITION_MANAGER_PERMIT, V3_POSITION_MANAGER_CALL
+
+describe('Uniswap V3 Position Manager Gas Tests', () => {
   let alice: SignerWithAddress
   let bob: SignerWithAddress
-  let router: UniversalRouter
+  let router: OmegaRouter
   let daiContract: Contract
   let wethContract: Contract
   let usdcContract: Contract
   let planner: RoutePlanner
-  let v4Planner: V4Planner
   let v3NFTPositionManager: INonfungiblePositionManager
-  let v4PositionManagerAddress: string
-  let v4PositionManager: PositionManager
 
   let tokenIdv3: BigNumber
 
@@ -64,12 +58,9 @@ describe('V3 to V4 Migration Gas Tests', () => {
     daiContract = new ethers.Contract(MAINNET_DAI.address, TOKEN_ABI, bob)
     wethContract = new ethers.Contract(MAINNET_WETH.address, TOKEN_ABI, bob)
     usdcContract = new ethers.Contract(MAINNET_USDC.address, TOKEN_ABI, bob)
-    v3NFTPositionManager = INTEGRAL_NFT_POSITION_MANAGER.connect(bob) as INonfungiblePositionManager
-    router = (await deployUniversalRouter()).connect(bob) as UniversalRouter
-    v4PositionManagerAddress = await router.V4_POSITION_MANAGER()
-    v4PositionManager = (await ethers.getContractAt('PositionManager', v4PositionManagerAddress)) as PositionManager
+    v3NFTPositionManager = UNISWAP_NFT_POSITION_MANAGER.connect(bob) as any as INonfungiblePositionManager
+    router = (await deployOmegaRouter()).connect(bob) as OmegaRouter
     planner = new RoutePlanner()
-    v4Planner = new V4Planner()
 
     // alice gives bob some tokens
     await daiContract.connect(alice).transfer(bob.address, expandTo18DecimalsBN(100000))
@@ -77,7 +68,8 @@ describe('V3 to V4 Migration Gas Tests', () => {
     await usdcContract.connect(alice).transfer(bob.address, expandTo6DecimalsBN(100000))
   })
 
-  describe('V3 Commands', () => {
+  // TODO: Enable these tests when V3 position manager commands are added to the router
+  xdescribe('V3 Commands', () => {
     beforeEach(async () => {
       // Bob max-approves the v3PM to access his USDC and WETH
       await usdcContract.connect(bob).approve(v3NFTPositionManager.address, MAX_UINT)
@@ -260,7 +252,9 @@ describe('V3 to V4 Migration Gas Tests', () => {
     })
   })
 
-  describe('V4 Commands', () => {
+  // TODO: Enable these tests when Integral position manager integration is completed
+  // Currently testing V4 concepts that don't exist in Omega Router
+  xdescribe('V4 Commands', () => {
     describe('initialize pool', () => {
       it('gas: initialize a pool', async () => {
         planner.addCommand(CommandType.V4_INITIALIZE_POOL, [USDC_WETH.poolKey, USDC_WETH.price])

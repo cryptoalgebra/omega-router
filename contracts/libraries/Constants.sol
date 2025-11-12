@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 /// @title Constant state
-/// @notice Constant state used by the Universal Router
+/// @notice Constant state used by the Omega Router
 library Constants {
     /// @dev Used for identifying cases when a v2 pair has already received input tokens
     uint256 internal constant ALREADY_PAID = 0;

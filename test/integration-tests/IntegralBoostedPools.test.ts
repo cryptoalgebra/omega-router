@@ -1,7 +1,7 @@
 import type { Contract } from '@ethersproject/contracts'
 import { expect } from './shared/expect'
 import { BigNumber } from 'ethers'
-import { IPermit2, UniversalRouter } from '../../typechain'
+import { IPermit2, OmegaRouter } from '../../typechain'
 import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
 import { abi as ERC4626_ABI } from '../../artifacts/@openzeppelin/contracts/interfaces/IERC4626.sol/IERC4626.json'
 import {
@@ -29,7 +29,7 @@ import {
 } from './shared/constants'
 import { expand6To18DecimalsBN, expandTo18DecimalsBN, expandTo6DecimalsBN } from './shared/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import deployUniversalRouter from './shared/deployUniversalRouter'
+import deployOmegaRouter from './shared/deployOmegaRouter'
 import { CommandType, RoutePlanner } from './shared/planner'
 import hre from 'hardhat'
 import { encodePathExactInputIntegral } from './shared/swapRouter02Helpers'
@@ -46,7 +46,7 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
   let alice: SignerWithAddress
   let bob: SignerWithAddress
   let vault: SignerWithAddress
-  let router: UniversalRouter
+  let router: OmegaRouter
   let permit2: IPermit2
   let usdcContract: Contract
   let wethContract: Contract
@@ -153,7 +153,7 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
     wWETHContract = new ethers.Contract(BASE_WA_WETH.address, ERC4626_ABI, bob)
     wUSDCContract = new ethers.Contract(BASE_WM_USDC.address, ERC4626_ABI, bob)
     permit2 = PERMIT2.connect(bob) as IPermit2
-    router = (await deployUniversalRouter(BASE_WETH.address)) as UniversalRouter
+    router = (await deployOmegaRouter(BASE_WETH.address)) as OmegaRouter
     planner = new RoutePlanner()
 
     // alice gives bob some tokens

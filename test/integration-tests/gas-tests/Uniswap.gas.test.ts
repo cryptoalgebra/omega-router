@@ -4,7 +4,7 @@ import { Route as V2RouteSDK, Pair } from '@uniswap/v2-sdk'
 import { Route as V3RouteSDK } from '@uniswap/v3-sdk'
 import { SwapRouter, Trade } from '@uniswap/router-sdk'
 import snapshotGasCost from '@uniswap/snapshot-gas-cost'
-import deployUniversalRouter from '../shared/deployUniversalRouter'
+import deployOmegaRouter from '../shared/deployOmegaRouter'
 import { getPermitBatchSignature } from '../shared/protocolHelpers/permit2'
 import {
   makePair,
@@ -18,7 +18,7 @@ import {
   encodePathExactInput,
 } from '../shared/swapRouter02Helpers'
 import { BigNumber, BigNumberish } from 'ethers'
-import { IPermit2, UniversalRouter } from '../../../typechain'
+import { IPermit2, OmegaRouter } from '../../../typechain'
 import { abi as TOKEN_ABI } from '../../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
 import {
   approveAndExecuteSwapRouter02,
@@ -51,7 +51,7 @@ const { ethers } = hre
 describe('Uniswap Gas Tests', () => {
   let alice: SignerWithAddress
   let bob: SignerWithAddress
-  let router: UniversalRouter
+  let router: OmegaRouter
   let permit2: IPermit2
   let daiContract: Contract
   let wethContract: Contract
@@ -73,7 +73,7 @@ describe('Uniswap Gas Tests', () => {
     daiContract = new ethers.Contract(MAINNET_DAI.address, TOKEN_ABI, bob)
     wethContract = new ethers.Contract(MAINNET_WETH.address, TOKEN_ABI, bob)
     permit2 = PERMIT2.connect(bob) as IPermit2
-    router = (await deployUniversalRouter()).connect(bob) as UniversalRouter
+    router = (await deployOmegaRouter()).connect(bob) as OmegaRouter
     pair_DAI_WETH = await makePair(bob, MAINNET_DAI, MAINNET_WETH)
     pair_DAI_USDC = await makePair(bob, MAINNET_DAI, MAINNET_USDC)
     pair_USDC_WETH = await makePair(bob, MAINNET_USDC, MAINNET_WETH)
@@ -181,7 +181,7 @@ describe('Uniswap Gas Tests', () => {
       })
     })
 
-    describe('with Universal Router.', () => {
+    describe('with Omega Router.', () => {
       const amountIn: BigNumber = expandTo18DecimalsBN(5)
       let planner: RoutePlanner
 
@@ -512,7 +512,7 @@ describe('Uniswap Gas Tests', () => {
       })
     })
 
-    describe('with Universal Router.', () => {
+    describe('with Omega Router.', () => {
       const amountIn: BigNumber = expandTo18DecimalsBN(500)
       const amountInMax: BigNumber = expandTo18DecimalsBN(5000)
       const amountOut: BigNumber = expandTo18DecimalsBN(1)
@@ -695,7 +695,7 @@ describe('Uniswap Gas Tests', () => {
   })
 
   describe('Mixing V2 and V3', () => {
-    describe('with Universal Router.', () => {
+    describe('with Omega Router.', () => {
       beforeEach(async () => {
         planner = new RoutePlanner()
 

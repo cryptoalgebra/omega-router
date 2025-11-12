@@ -6,18 +6,18 @@ import {ERC20} from 'solmate/src/tokens/ERC20.sol';
 contract ReenteringWETH is ERC20 {
     error NotAllowedReenter();
 
-    address universalRouter;
+    address omegaRouter;
     bytes data;
 
     constructor() ERC20('ReenteringWETH', 'RW', 18) {}
 
-    function setParameters(address _universalRouter, bytes memory _data) external {
-        universalRouter = _universalRouter;
+    function setParameters(address _omegaRouter, bytes memory _data) external {
+        omegaRouter = _omegaRouter;
         data = _data;
     }
 
     function deposit() public payable {
-        (bool success,) = universalRouter.call(data);
+        (bool success,) = omegaRouter.call(data);
         if (!success) revert NotAllowedReenter();
     }
 }

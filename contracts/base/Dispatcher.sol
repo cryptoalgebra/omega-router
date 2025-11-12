@@ -20,7 +20,7 @@ import {ActionConstants} from '../libraries/ActionConstants.sol';
 import {CalldataDecoder} from '../libraries/CalldataDecoder.sol';
 
 /// @title Decodes and Executes Commands
-/// @notice Called by the UniversalRouter contract to efficiently decode and execute a singular command
+/// @notice Called by the OmegaRouter contract to efficiently decode and execute a singular command
 abstract contract Dispatcher is
     Payments,
     Lock,
