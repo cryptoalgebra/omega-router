@@ -220,7 +220,7 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
     it('100 USDC wrap -> wmUSDC swap -> waWETH unwrap -> WETH', async () => {
       const { ethBalanceBefore, ethBalanceAfter, v3SwapEventArgs, gasSpent } = await swapUSDCtoWETH()
 
-      const amountOut = (v3SwapEventArgs?.amount1!).mul(-1)
+      const amountOut = v3SwapEventArgs?.amount1!.mul(-1)
 
       // "greater than" because `amountOut` is WA_ETH amount. After UNWRAP it transforms into the greater ETH amount
       expect(ethBalanceAfter.sub(ethBalanceBefore)).to.be.gt(amountOut.sub(gasSpent))
@@ -239,7 +239,7 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       // User has USDC (unwrapped)
       // Pool: wUSDC -> wWETH (wrapped tokens)
       // ExactOut: Want exactly 0.01 wWETH
-      
+
       const amountOutWWETH = expandTo18DecimalsBN(0.01)
       const maxUSDCIn = expandTo6DecimalsBN(50)
 
@@ -252,21 +252,30 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       const wWETHBalanceBefore = await wWETHContract.balanceOf(bob.address)
 
       planner.addCommand(CommandType.INTEGRAL_EXACT_OUT_WRAP_INPUT, [
-        MSG_SENDER,           // recipient - gets wWETH
-        amountOutWWETH,       // exact amount out in wWETH
-        maxUSDCIn,            // max amount in USDC (will be wrapped to wUSDC)
-        path,                 // path: wWETH <- wUSDC
-        MSG_SENDER,           // payer - permit2 will take from msg.sender
+        MSG_SENDER, // recipient - gets wWETH
+        amountOutWWETH, // exact amount out in wWETH
+        maxUSDCIn, // max amount in USDC (will be wrapped to wUSDC)
+        path, // path: wWETH <- wUSDC
+        MSG_SENDER, // payer - permit2 will take from msg.sender
       ])
 
-      await executeRouter(planner, bob, router, wethContract, daiContract, usdcContract, undefined, DEX.ALGEBRA_INTEGRAL)
+      await executeRouter(
+        planner,
+        bob,
+        router,
+        wethContract,
+        daiContract,
+        usdcContract,
+        undefined,
+        DEX.ALGEBRA_INTEGRAL
+      )
 
       const usdcBalanceAfter = await usdcContract.balanceOf(bob.address)
       const wWETHBalanceAfter = await wWETHContract.balanceOf(bob.address)
 
       // Check we got exactly the wWETH we wanted
       expect(wWETHBalanceAfter.sub(wWETHBalanceBefore)).to.eq(amountOutWWETH)
-      
+
       // Check we spent USDC (should be less than max)
       const usdcSpent = usdcBalanceBefore.sub(usdcBalanceAfter)
       expect(usdcSpent).to.be.lt(maxUSDCIn)
@@ -282,22 +291,22 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
     it('exactOut multihop wrap: USDC -> wUSDC -> wWETH -> DAI (wrap only in last hop)', async () => {
       // Reset planner
       planner = new RoutePlanner()
-      
+
       // Give Alice some DAI for the pool
       const daiWhale = await ethers.getSigner(BASE_DAI_WHALE)
       await daiContract.connect(daiWhale).transfer(alice.address, expandTo18DecimalsBN(100000))
-      
+
       // Create additional pool: wWETH -> DAI (unwrapped)
       const daiAmount = expandTo18DecimalsBN(50000)
       const wethAmount = expandTo18DecimalsBN(10)
-      
+
       await daiContract.connect(alice).approve(INTEGRAL_NFT_POSITION_MANAGER.address, MAX_UINT)
       await wWETHContract.connect(alice).approve(INTEGRAL_NFT_POSITION_MANAGER.address, MAX_UINT)
-      
+
       // Wrap some WETH for alice
       await wethContract.connect(alice).approve(BASE_WA_WETH.address, MAX_UINT)
       await wWETHContract.connect(alice).deposit(wethAmount, alice.address)
-      
+
       await INTEGRAL_NFT_POSITION_MANAGER.connect(alice).createAndInitializePoolIfNecessary(
         BASE_DAI.address,
         BASE_WA_WETH.address,
@@ -332,21 +341,30 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       const daiBalanceBefore = await daiContract.balanceOf(bob.address)
 
       planner.addCommand(CommandType.INTEGRAL_EXACT_OUT_WRAP_INPUT, [
-        MSG_SENDER,           // recipient - gets DAI
-        amountOutDAI,         // exact amount out in DAI
-        maxUSDCIn,            // max amount in USDC (will be wrapped to wUSDC)
-        path,                 // path: DAI <- wWETH <- wUSDC
-        MSG_SENDER,           // payer
+        MSG_SENDER, // recipient - gets DAI
+        amountOutDAI, // exact amount out in DAI
+        maxUSDCIn, // max amount in USDC (will be wrapped to wUSDC)
+        path, // path: DAI <- wWETH <- wUSDC
+        MSG_SENDER, // payer
       ])
 
-      await executeRouter(planner, bob, router, wethContract, daiContract, usdcContract, undefined, DEX.ALGEBRA_INTEGRAL)
+      await executeRouter(
+        planner,
+        bob,
+        router,
+        wethContract,
+        daiContract,
+        usdcContract,
+        undefined,
+        DEX.ALGEBRA_INTEGRAL
+      )
 
       const usdcBalanceAfter = await usdcContract.balanceOf(bob.address)
       const daiBalanceAfter = await daiContract.balanceOf(bob.address)
 
       // Check we got exactly the DAI we wanted
       expect(daiBalanceAfter.sub(daiBalanceBefore)).to.eq(amountOutDAI)
-      
+
       // Check we spent USDC
       const usdcSpent = usdcBalanceBefore.sub(usdcBalanceAfter)
       expect(usdcSpent).to.be.lt(maxUSDCIn)
@@ -484,7 +502,7 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       planner = new RoutePlanner()
       planner.addCommand(CommandType.ERC4626_UNWRAP, [wWETHContract.address, bob.address, CONTRACT_BALANCE, 0])
       planner.addCommand(CommandType.ERC4626_UNWRAP, [wUSDCContract.address, bob.address, CONTRACT_BALANCE, 0])
-      
+
       await executeRouter(
         planner,
         bob,
@@ -553,7 +571,7 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       )
 
       expect(await usdcContract.balanceOf(vault.address)).to.be.approximately(expandTo6DecimalsBN(4200), 10)
-      expect(await wethContract.balanceOf(vault.address)).to.be.approximately(expandTo18DecimalsBN(1), 10**10)
+      expect(await wethContract.balanceOf(vault.address)).to.be.approximately(expandTo18DecimalsBN(1), 10 ** 10)
     })
 
     it('increase liquidity with wrap', async () => {

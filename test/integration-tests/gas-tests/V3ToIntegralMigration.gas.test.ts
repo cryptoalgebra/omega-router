@@ -11,24 +11,14 @@ import {
   MAINNET_USDC,
   UNISWAP_NFT_POSITION_MANAGER,
 } from '../shared/mainnetForkHelpers'
-import {
-  MAINNET_ALICE_ADDRESS,
-  DEADLINE,
-  MAX_UINT,
-  MAX_UINT128,
-} from '../shared/constants'
+import { MAINNET_ALICE_ADDRESS, DEADLINE, MAX_UINT, MAX_UINT128 } from '../shared/constants'
 import { expandTo18DecimalsBN, expandTo6DecimalsBN } from '../shared/helpers'
 import getPermitNFTSignature from '../shared/getPermitNFTSignature'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import hre from 'hardhat'
 import { RoutePlanner, CommandType } from '../shared/planner'
 import { FeeAmount } from '@uniswap/v3-sdk'
-import {
-  encodeERC721Permit,
-  encodeDecreaseLiquidity,
-  encodeCollect,
-  encodeBurn,
-} from '../shared/encodeCall'
+import { encodeERC721Permit, encodeDecreaseLiquidity, encodeCollect, encodeBurn } from '../shared/encodeCall'
 const { ethers } = hre
 
 // TODO: Add V3 position manager commands to enable migration from Uniswap V3 to Algebra Integral
