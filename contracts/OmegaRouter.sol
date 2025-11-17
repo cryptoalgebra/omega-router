@@ -12,22 +12,18 @@ import {IOmegaRouter} from './interfaces/IOmegaRouter.sol';
 
 contract OmegaRouter is IOmegaRouter, Dispatcher {
     constructor(RouterParameters memory params)
-        AlgebraImmutables(
-            AlgebraParameters(
+        AlgebraImmutables(AlgebraParameters(
                 params.integralFactory,
                 params.integralPoolDeployer,
                 params.integralPosManager,
                 params.integralPoolInitCodeHash
-            )
-        )
-        UniswapImmutables(
-            UniswapParameters(
+            ))
+        UniswapImmutables(UniswapParameters(
                 params.uniswapV2Factory,
                 params.uniswapV3Factory,
                 params.uniswapPairInitCodeHash,
                 params.uniswapPoolInitCodeHash
-            )
-        )
+            ))
         PaymentsImmutables(PaymentsParameters(params.permit2, params.weth))
     {}
 

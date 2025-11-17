@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.17;
 
-import {INonfungiblePositionManager as IIntegralNonfungiblePositionManager} from
-    '@cryptoalgebra/integral-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
+import {
+    INonfungiblePositionManager as IIntegralNonfungiblePositionManager
+} from '@cryptoalgebra/integral-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
 
 /// @title Creates and initializes V3 Pools
 /// @notice Provides a method for creating and initializing a pool, if necessary, for bundling with other methods that

@@ -14,8 +14,9 @@ import {Commands} from '../libraries/Commands.sol';
 import {Lock} from './Lock.sol';
 import {ERC20} from 'solmate/src/tokens/ERC20.sol';
 import {IAllowanceTransfer} from 'permit2/src/interfaces/IAllowanceTransfer.sol';
-import {INonfungiblePositionManager} from
-    '@cryptoalgebra/integral-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
+import {
+    INonfungiblePositionManager
+} from '@cryptoalgebra/integral-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
 import {ActionConstants} from '../libraries/ActionConstants.sol';
 import {CalldataDecoder} from '../libraries/CalldataDecoder.sol';
 
@@ -116,14 +117,15 @@ abstract contract Dispatcher is
                             permitBatch := add(inputs.offset, calldataload(inputs.offset))
                         }
                         bytes calldata data = inputs.toBytes(1);
-                        (success, output) = address(PERMIT2).call(
-                            abi.encodeWithSignature(
-                                'permit(address,((address,uint160,uint48,uint48)[],address,uint256),bytes)',
-                                msgSender(),
-                                permitBatch,
-                                data
-                            )
-                        );
+                        (success, output) = address(PERMIT2)
+                            .call(
+                                abi.encodeWithSignature(
+                                    'permit(address,((address,uint160,uint48,uint48)[],address,uint256),bytes)',
+                                    msgSender(),
+                                    permitBatch,
+                                    data
+                                )
+                            );
                     } else if (command == Commands.SWEEP) {
                         // equivalent:  abi.decode(inputs, (address, address, uint256))
                         address token;
@@ -214,14 +216,15 @@ abstract contract Dispatcher is
                             permitSingle := inputs.offset
                         }
                         bytes calldata data = inputs.toBytes(6); // PermitSingle takes first 6 slots (0..5)
-                        (success, output) = address(PERMIT2).call(
-                            abi.encodeWithSignature(
-                                'permit(address,((address,uint160,uint48,uint48),address,uint256),bytes)',
-                                msgSender(),
-                                permitSingle,
-                                data
-                            )
-                        );
+                        (success, output) = address(PERMIT2)
+                            .call(
+                                abi.encodeWithSignature(
+                                    'permit(address,((address,uint160,uint48,uint48),address,uint256),bytes)',
+                                    msgSender(),
+                                    permitSingle,
+                                    data
+                                )
+                            );
                     } else if (command == Commands.WRAP_ETH) {
                         // equivalent: abi.decode(inputs, (address, uint256))
                         address recipient;
@@ -351,8 +354,24 @@ abstract contract Dispatcher is
                 } else if (command == Commands.INTEGRAL_POSITION_MANAGER_PERMIT) {
                     _checkV3PermitCall(inputs);
                     (success, output) = address(ALGEBRA_INTEGRAL_POSITION_MANAGER).call(inputs);
+                } else if (command == Commands.INTEGRAL_EXACT_OUT_WRAP_INPUT) {
+                    // equivalent: abi.decode(inputs, (address, uint256, uint256, bytes, bool))
+                    address recipient;
+                    uint256 amountOut;
+                    uint256 amountInMax;
+                    bool payerIsUser;
+                    assembly {
+                        recipient := calldataload(inputs.offset)
+                        amountOut := calldataload(add(inputs.offset, 0x20))
+                        amountInMax := calldataload(add(inputs.offset, 0x40))
+                        // 0x60 offset is the path, decoded below
+                        payerIsUser := calldataload(add(inputs.offset, 0x80))
+                    }
+                    bytes calldata path = inputs.toBytes(3);
+                    address payer = payerIsUser ? msgSender() : address(this);
+                    integralExactOutWrapInput(map(recipient), amountOut, amountInMax, path, payer);
                 } else {
-                    // placeholder area for commands 0x16-0x20
+                    // placeholder area for commands 0x17-0x20
                     revert InvalidCommandType(command);
                 }
             }

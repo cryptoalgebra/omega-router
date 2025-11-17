@@ -87,7 +87,7 @@ export async function executeRouter(
   const v2SwapEventArgs = parseEvents(V2_EVENTS, receipt)[0]?.args as unknown as V2SwapEventArgs
 
   const integralPosEventArgs = parseEvents(ALGEBRA_INTEGRAL_POSITION_EVENTS, receipt).map(
-    event => event?.args as unknown as IntegralPositionEventArgs
+    (event) => event?.args as unknown as IntegralPositionEventArgs
   )
 
   const ethBalanceAfter: BigNumber = await ethers.provider.getBalance(caller.address)

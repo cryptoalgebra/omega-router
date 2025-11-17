@@ -10,12 +10,7 @@ import {
   MAINNET_USDC,
   UNISWAP_NFT_POSITION_MANAGER,
 } from './shared/mainnetForkHelpers'
-import {
-  ZERO_ADDRESS,
-  MAINNET_ALICE_ADDRESS,
-  MAX_UINT,
-  MAX_UINT128,
-} from './shared/constants'
+import { ZERO_ADDRESS, MAINNET_ALICE_ADDRESS, MAX_UINT, MAX_UINT128 } from './shared/constants'
 import { expandTo18DecimalsBN, expandTo6DecimalsBN } from './shared/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import deployOmegaRouter from './shared/deployOmegaRouter'
@@ -23,12 +18,7 @@ import { RoutePlanner, CommandType } from './shared/planner'
 import hre from 'hardhat'
 import getPermitNFTSignature from './shared/getPermitNFTSignature'
 import { FeeAmount } from '@uniswap/v3-sdk'
-import {
-  encodeERC721Permit,
-  encodeDecreaseLiquidity,
-  encodeCollect,
-  encodeBurn,
-} from './shared/encodeCall'
+import { encodeERC721Permit, encodeDecreaseLiquidity, encodeCollect, encodeBurn } from './shared/encodeCall'
 import { executeRouter } from './shared/executeRouter'
 const { ethers } = hre
 

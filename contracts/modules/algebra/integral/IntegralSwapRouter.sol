@@ -5,14 +5,20 @@ import {IntegralPath} from './IntegralPath.sol';
 import {IntegralBytesLib} from './IntegralBytesLib.sol';
 import {SafeCast} from '@cryptoalgebra/integral-core/contracts/libraries/SafeCast.sol';
 import {IAlgebraPool} from '@cryptoalgebra/integral-core/contracts/interfaces/IAlgebraPool.sol';
-import {IAlgebraSwapCallback} from '@cryptoalgebra/integral-core/contracts/interfaces/callback/IAlgebraSwapCallback.sol';
+import {
+    IAlgebraSwapCallback
+} from '@cryptoalgebra/integral-core/contracts/interfaces/callback/IAlgebraSwapCallback.sol';
 import {ActionConstants} from '../../../libraries/ActionConstants.sol';
 import {CalldataDecoder} from '../../../libraries/CalldataDecoder.sol';
 import {Constants} from '../../../libraries/Constants.sol';
 import {Permit2Payments} from '../../Permit2Payments.sol';
 import {AlgebraImmutables} from '../AlgebraImmutables.sol';
 import {MaxInputAmount} from '../../../libraries/MaxInputAmount.sol';
+import {ShouldWrapInput} from '../../../libraries/ShouldWrapInput.sol';
 import {ERC20} from 'solmate/src/tokens/ERC20.sol';
+import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import {IERC4626} from '@openzeppelin/contracts/interfaces/IERC4626.sol';
+import {SafeERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 
 /// @title Router for Algebra Integral Swaps
 abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlgebraSwapCallback {
@@ -20,6 +26,7 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
     using IntegralBytesLib for bytes;
     using CalldataDecoder for bytes;
     using SafeCast for uint256;
+    using SafeERC20 for IERC20;
 
     error IntegralInvalidSwap();
     error IntegralTooLittleReceived();
@@ -50,9 +57,24 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
                 path = path.skipToken();
                 _integralSwap(-amountToPay.toInt256(), msg.sender, path, payer, false);
             } else {
-                if (amountToPay > MaxInputAmount.get()) revert IntegralTooMuchRequested();
-                // note that because exact output swaps are executed in reverse order, tokenOut is actually tokenIn
-                payOrPermit2Transfer(tokenOut, payer, msg.sender, amountToPay);
+                if (ShouldWrapInput.get()) {
+                    // Get the underlying token address from the vault
+                    address vault = tokenOut;
+                    address underlyingToken = IERC4626(vault).asset();
+                    // Calculate how much underlying we need using previewMint
+                    uint256 underlyingNeeded = IERC4626(vault).previewMint(amountToPay);
+                    if (underlyingNeeded > MaxInputAmount.get()) revert IntegralTooMuchRequested();
+
+                    payOrPermit2Transfer(underlyingToken, payer, address(this), underlyingNeeded);
+
+                    // Mint exactly amountToPay wrapper tokens and send to pool
+                    IERC20(underlyingToken).forceApprove(vault, underlyingNeeded);
+                    IERC4626(vault).mint(amountToPay, msg.sender);
+                } else {
+                    if (amountToPay > MaxInputAmount.get()) revert IntegralTooMuchRequested();
+                    // note that because exact output swaps are executed in reverse order, tokenOut is actually tokenIn
+                    payOrPermit2Transfer(tokenOut, payer, msg.sender, amountToPay);
+                }
             }
         }
     }
@@ -128,6 +150,33 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
         MaxInputAmount.set(0);
     }
 
+    /// @notice Performs an Algebra Integral exact output swap with wrap of input token
+    /// @param recipient The recipient of the output tokens
+    /// @param amountOut The amount of output tokens to receive for the trade
+    /// @param amountInMaximum The maximum desired amount of input tokens in underlying token terms
+    /// @param path The path of the trade as a bytes string (first token in path should be the vault/wrapper)
+    /// @param payer The address that will be paying the input
+    function integralExactOutWrapInput(
+        address recipient,
+        uint256 amountOut,
+        uint256 amountInMaximum,
+        bytes calldata path,
+        address payer
+    ) internal {
+        ShouldWrapInput.set(true);
+        MaxInputAmount.set(amountInMaximum);
+
+        (int256 amount0Delta, int256 amount1Delta, bool zeroForOne) =
+            _integralSwap(-amountOut.toInt256(), recipient, path, payer, false);
+
+        uint256 amountOutReceived = zeroForOne ? uint256(-amount1Delta) : uint256(-amount0Delta);
+
+        if (amountOutReceived != amountOut) revert IntegralInvalidAmountOut();
+
+        MaxInputAmount.set(0);
+        ShouldWrapInput.set(false);
+    }
+
     /// @dev Performs a single swap for both exactIn and exactOut
     /// For exactIn, `amount` is `amountIn`. For exactOut, `amount` is `-amountOut`
     function _integralSwap(int256 amount, address recipient, bytes calldata path, address payer, bool isExactIn)
@@ -138,21 +187,18 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
 
         zeroForOne = isExactIn ? tokenIn < tokenOut : tokenOut < tokenIn;
 
-        (amount0Delta, amount1Delta) = IAlgebraPool(computePoolAddress(tokenIn, deployer, tokenOut)).swap(
-            recipient,
-            zeroForOne,
-            amount,
-            (zeroForOne ? Constants.MIN_SQRT_RATIO + 1 : Constants.MAX_SQRT_RATIO - 1),
-            abi.encode(path, payer)
-        );
+        (amount0Delta, amount1Delta) = IAlgebraPool(computePoolAddress(tokenIn, deployer, tokenOut))
+            .swap(
+                recipient,
+                zeroForOne,
+                amount,
+                (zeroForOne ? Constants.MIN_SQRT_RATIO + 1 : Constants.MAX_SQRT_RATIO - 1),
+                abi.encode(path, payer)
+            );
     }
 
     /// @notice Deterministically computes the pool address given the poolDeployer and PoolKey
-    function computePoolAddress(address tokenA, address deployer, address tokenB)
-        internal
-        view
-        returns (address pool)
-    {
+    function computePoolAddress(address tokenA, address deployer, address tokenB) internal view returns (address pool) {
         if (tokenA > tokenB) (tokenA, tokenB) = (tokenB, tokenA);
         pool = address(
             uint160(
