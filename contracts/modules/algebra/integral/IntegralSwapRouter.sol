@@ -62,9 +62,9 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
                     // Calculate how much underlying we need using previewMint
                     uint256 underlyingNeeded = IERC4626(vault).previewMint(amountToPay);
                     if (underlyingNeeded > MaxInputAmount.get()) revert IntegralTooMuchRequested();
-                    
+
                     payOrPermit2Transfer(underlyingToken, payer, address(this), underlyingNeeded);
-                    
+
                     // Mint exactly amountToPay wrapper tokens and send to pool
                     IERC20(underlyingToken).forceApprove(vault, underlyingNeeded);
                     IERC4626(vault).mint(amountToPay, msg.sender);

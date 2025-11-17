@@ -43,7 +43,7 @@ abstract contract IntegralPositions is AlgebraImmutables, Permit2Payments {
     /// @param params The params necessary to increase liquidity, encoded as `IncreaseLiquidityParams`
     function integralIncreaseLiquidity(INonfungiblePositionManager.IncreaseLiquidityParams memory params) internal {
         // fetch token0 and token1 for the given tokenId
-        (, , address token0, address token1, , , , , , , , ) =
+        (,, address token0, address token1,,,,,,,,) =
             INonfungiblePositionManager(ALGEBRA_INTEGRAL_POSITION_MANAGER).positions(params.tokenId);
 
         // use amountDesired == ActionConstants.CONTRACT_BALANCE as a flag to add liquidity using the entire balance of the contract
