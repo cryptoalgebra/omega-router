@@ -30,6 +30,7 @@ export enum CommandType {
   INTEGRAL_MINT = 0x13,
   INTEGRAL_POSITION_MANAGER_PERMIT = 0x14,
   INTEGRAL_INCREASE_LIQUIDITY = 0x15,
+  INTEGRAL_EXACT_OUT_WRAP_INPUT = 0x16,
 
   EXECUTE_SUB_PLAN = 0x21,
 }
@@ -89,6 +90,7 @@ const ABI_DEFINITION: { [key in CommandType]: string[] } = {
   [CommandType.INTEGRAL_MINT]: [MINT_PARAMS],
   [CommandType.INTEGRAL_POSITION_MANAGER_PERMIT]: ['bytes'],
   [CommandType.INTEGRAL_INCREASE_LIQUIDITY]: [INCREASE_LIQUIDITY_PARAMS],
+  [CommandType.INTEGRAL_EXACT_OUT_WRAP_INPUT]: ['address', 'uint256', 'uint256', 'bytes', 'bool'],
 }
 
 export class RoutePlanner {

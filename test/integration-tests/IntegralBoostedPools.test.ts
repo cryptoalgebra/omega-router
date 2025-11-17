@@ -32,7 +32,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import deployOmegaRouter from './shared/deployOmegaRouter'
 import { CommandType, RoutePlanner } from './shared/planner'
 import hre from 'hardhat'
-import { encodePathExactInputIntegral } from './shared/swapRouter02Helpers'
+import { encodePathExactInputIntegral, encodePathExactOutputIntegral } from './shared/swapRouter02Helpers'
 import { DEX, executeRouter, ExecutionParams } from './shared/executeRouter'
 import { ADDRESS_ZERO } from '@uniswap/v3-sdk'
 import { encodePriceSqrt } from '../../lib/v3-periphery/test/shared/encodePriceSqrt'
@@ -233,6 +233,130 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
 
       // "greater than" because `amountOut` is WA_ETH amount. After UNWRAP it transforms into the greater ETH amount
       expect(expand6To18DecimalsBN(usdcBalanceAfter.sub(usdcBalanceBefore))).to.be.gt(amountOut)
+    })
+
+    it('exactOut wrap: USDC -> wUSDC -> wWETH (user has unwrapped, pool needs wrapped)', async () => {
+      // User has USDC (unwrapped)
+      // Pool: wUSDC -> wWETH (wrapped tokens)
+      // ExactOut: Want exactly 0.01 wWETH
+      
+      const amountOutWWETH = expandTo18DecimalsBN(0.01)
+      const maxUSDCIn = expandTo6DecimalsBN(50)
+
+      // Path for exactOut (reversed): wWETH <- wUSDC
+      // First token in exactOut path is what we want to receive (wWETH)
+      // Last token is what pool expects as input (wUSDC - this will be wrapped from USDC)
+      const path = encodePathExactOutputIntegral([BASE_WM_USDC.address, BASE_WA_WETH.address])
+
+      const usdcBalanceBefore = await usdcContract.balanceOf(bob.address)
+      const wWETHBalanceBefore = await wWETHContract.balanceOf(bob.address)
+
+      planner.addCommand(CommandType.INTEGRAL_EXACT_OUT_WRAP_INPUT, [
+        MSG_SENDER,           // recipient - gets wWETH
+        amountOutWWETH,       // exact amount out in wWETH
+        maxUSDCIn,            // max amount in USDC (will be wrapped to wUSDC)
+        path,                 // path: wWETH <- wUSDC
+        MSG_SENDER,           // payer - permit2 will take from msg.sender
+      ])
+
+      await executeRouter(planner, bob, router, wethContract, daiContract, usdcContract, undefined, DEX.ALGEBRA_INTEGRAL)
+
+      const usdcBalanceAfter = await usdcContract.balanceOf(bob.address)
+      const wWETHBalanceAfter = await wWETHContract.balanceOf(bob.address)
+
+      // Check we got exactly the wWETH we wanted
+      expect(wWETHBalanceAfter.sub(wWETHBalanceBefore)).to.eq(amountOutWWETH)
+      
+      // Check we spent USDC (should be less than max)
+      const usdcSpent = usdcBalanceBefore.sub(usdcBalanceAfter)
+      expect(usdcSpent).to.be.lt(maxUSDCIn)
+      expect(usdcSpent).to.be.gt(0)
+
+      // Check no tokens left on router
+      expect(await usdcContract.balanceOf(router.address)).to.equal(0)
+      expect(await wUSDCContract.balanceOf(router.address)).to.equal(0)
+      expect(await wWETHContract.balanceOf(router.address)).to.equal(0)
+      expect(await wethContract.balanceOf(router.address)).to.equal(0)
+    })
+
+    it('exactOut multihop wrap: USDC -> wUSDC -> wWETH -> DAI (wrap only in last hop)', async () => {
+      // Reset planner
+      planner = new RoutePlanner()
+      
+      // Give Alice some DAI for the pool
+      const daiWhale = await ethers.getSigner(BASE_DAI_WHALE)
+      await daiContract.connect(daiWhale).transfer(alice.address, expandTo18DecimalsBN(100000))
+      
+      // Create additional pool: wWETH -> DAI (unwrapped)
+      const daiAmount = expandTo18DecimalsBN(50000)
+      const wethAmount = expandTo18DecimalsBN(10)
+      
+      await daiContract.connect(alice).approve(INTEGRAL_NFT_POSITION_MANAGER.address, MAX_UINT)
+      await wWETHContract.connect(alice).approve(INTEGRAL_NFT_POSITION_MANAGER.address, MAX_UINT)
+      
+      // Wrap some WETH for alice
+      await wethContract.connect(alice).approve(BASE_WA_WETH.address, MAX_UINT)
+      await wWETHContract.connect(alice).deposit(wethAmount, alice.address)
+      
+      await INTEGRAL_NFT_POSITION_MANAGER.connect(alice).createAndInitializePoolIfNecessary(
+        BASE_DAI.address,
+        BASE_WA_WETH.address,
+        ADDRESS_ZERO,
+        encodePriceSqrt(wethAmount, daiAmount),
+        '0x'
+      )
+
+      await INTEGRAL_NFT_POSITION_MANAGER.connect(alice).mint({
+        token0: BASE_DAI.address,
+        token1: BASE_WA_WETH.address,
+        deployer: ADDRESS_ZERO,
+        tickLower: getMinTick(60),
+        tickUpper: getMaxTick(60),
+        amount0Desired: daiAmount,
+        amount1Desired: await wWETHContract.balanceOf(alice.address),
+        amount0Min: 0,
+        amount1Min: 0,
+        recipient: alice.address,
+        deadline: 10000000000000,
+      })
+
+      // Multihop exactOut: Want 100 DAI, path: wUSDC -> wWETH -> DAI
+      // Only the last hop (USDC -> wUSDC) should wrap
+      const amountOutDAI = expandTo18DecimalsBN(100)
+      const maxUSDCIn = expandTo6DecimalsBN(100)
+
+      // Path for exactOut: wUSDC -> wWETH -> DAI (encodePathExactOutputIntegral will reverse it)
+      const path = encodePathExactOutputIntegral([BASE_WM_USDC.address, BASE_WA_WETH.address, BASE_DAI.address])
+
+      const usdcBalanceBefore = await usdcContract.balanceOf(bob.address)
+      const daiBalanceBefore = await daiContract.balanceOf(bob.address)
+
+      planner.addCommand(CommandType.INTEGRAL_EXACT_OUT_WRAP_INPUT, [
+        MSG_SENDER,           // recipient - gets DAI
+        amountOutDAI,         // exact amount out in DAI
+        maxUSDCIn,            // max amount in USDC (will be wrapped to wUSDC)
+        path,                 // path: DAI <- wWETH <- wUSDC
+        MSG_SENDER,           // payer
+      ])
+
+      await executeRouter(planner, bob, router, wethContract, daiContract, usdcContract, undefined, DEX.ALGEBRA_INTEGRAL)
+
+      const usdcBalanceAfter = await usdcContract.balanceOf(bob.address)
+      const daiBalanceAfter = await daiContract.balanceOf(bob.address)
+
+      // Check we got exactly the DAI we wanted
+      expect(daiBalanceAfter.sub(daiBalanceBefore)).to.eq(amountOutDAI)
+      
+      // Check we spent USDC
+      const usdcSpent = usdcBalanceBefore.sub(usdcBalanceAfter)
+      expect(usdcSpent).to.be.lt(maxUSDCIn)
+      expect(usdcSpent).to.be.gt(0)
+
+      // Check no tokens left on router
+      expect(await usdcContract.balanceOf(router.address)).to.equal(0)
+      expect(await wUSDCContract.balanceOf(router.address)).to.equal(0)
+      expect(await wWETHContract.balanceOf(router.address)).to.equal(0)
+      expect(await daiContract.balanceOf(router.address)).to.equal(0)
     })
   })
 
