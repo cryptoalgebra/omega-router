@@ -56,8 +56,9 @@ abstract contract V2SwapRouter is UniswapImmutables, Permit2Payments {
         address[] calldata path,
         address payer
     ) internal {
-        address firstPair =
-            UniswapV2Library.pairFor(UNISWAP_V2_FACTORY, UNISWAP_V2_PAIR_INIT_CODE_HASH, path[0], path[1]);
+        address firstPair = UniswapV2Library.pairFor(
+            UNISWAP_V2_FACTORY, UNISWAP_V2_PAIR_INIT_CODE_HASH, path[0], path[1]
+        );
         if (
             amountIn != Constants.ALREADY_PAID // amountIn of 0 to signal that the pair already has the tokens
         ) {
@@ -87,8 +88,9 @@ abstract contract V2SwapRouter is UniswapImmutables, Permit2Payments {
         address[] calldata path,
         address payer
     ) internal {
-        (uint256 amountIn, address firstPair) =
-            UniswapV2Library.getAmountInMultihop(UNISWAP_V2_FACTORY, UNISWAP_V2_PAIR_INIT_CODE_HASH, amountOut, path);
+        (uint256 amountIn, address firstPair) = UniswapV2Library.getAmountInMultihop(
+            UNISWAP_V2_FACTORY, UNISWAP_V2_PAIR_INIT_CODE_HASH, amountOut, path
+        );
         if (amountIn > amountInMaximum) revert V2TooMuchRequested();
 
         payOrPermit2Transfer(path[0], payer, firstPair, amountIn);

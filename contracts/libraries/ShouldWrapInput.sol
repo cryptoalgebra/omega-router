@@ -7,13 +7,13 @@ library ShouldWrapInput {
     bytes32 constant SHOULD_WRAP_INPUT_SLOT = 0x77291d521b04555935cbc31efb81ea91f6f1247e2c7dd6186079d69b871c441f;
 
     function set(bool shouldWrap) internal {
-        assembly ("memory-safe") {
+        assembly ('memory-safe') {
             tstore(SHOULD_WRAP_INPUT_SLOT, shouldWrap)
         }
     }
 
     function get() internal view returns (bool shouldWrap) {
-        assembly ("memory-safe") {
+        assembly ('memory-safe') {
             shouldWrap := tload(SHOULD_WRAP_INPUT_SLOT)
         }
     }

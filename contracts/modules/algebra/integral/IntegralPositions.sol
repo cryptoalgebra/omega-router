@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import {INonfungiblePositionManager} from
-    '@cryptoalgebra/integral-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
+import {
+    INonfungiblePositionManager
+} from '@cryptoalgebra/integral-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
 import {IERC721Permit} from '@cryptoalgebra/integral-periphery/contracts/interfaces/IERC721Permit.sol';
 import {ActionConstants} from '../../../libraries/ActionConstants.sol';
 import {Permit2Payments} from '../../Permit2Payments.sol';

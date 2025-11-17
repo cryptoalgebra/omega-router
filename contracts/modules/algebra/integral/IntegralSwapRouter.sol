@@ -5,7 +5,9 @@ import {IntegralPath} from './IntegralPath.sol';
 import {IntegralBytesLib} from './IntegralBytesLib.sol';
 import {SafeCast} from '@cryptoalgebra/integral-core/contracts/libraries/SafeCast.sol';
 import {IAlgebraPool} from '@cryptoalgebra/integral-core/contracts/interfaces/IAlgebraPool.sol';
-import {IAlgebraSwapCallback} from '@cryptoalgebra/integral-core/contracts/interfaces/callback/IAlgebraSwapCallback.sol';
+import {
+    IAlgebraSwapCallback
+} from '@cryptoalgebra/integral-core/contracts/interfaces/callback/IAlgebraSwapCallback.sol';
 import {ActionConstants} from '../../../libraries/ActionConstants.sol';
 import {CalldataDecoder} from '../../../libraries/CalldataDecoder.sol';
 import {Constants} from '../../../libraries/Constants.sol';
@@ -185,21 +187,18 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
 
         zeroForOne = isExactIn ? tokenIn < tokenOut : tokenOut < tokenIn;
 
-        (amount0Delta, amount1Delta) = IAlgebraPool(computePoolAddress(tokenIn, deployer, tokenOut)).swap(
-            recipient,
-            zeroForOne,
-            amount,
-            (zeroForOne ? Constants.MIN_SQRT_RATIO + 1 : Constants.MAX_SQRT_RATIO - 1),
-            abi.encode(path, payer)
-        );
+        (amount0Delta, amount1Delta) = IAlgebraPool(computePoolAddress(tokenIn, deployer, tokenOut))
+            .swap(
+                recipient,
+                zeroForOne,
+                amount,
+                (zeroForOne ? Constants.MIN_SQRT_RATIO + 1 : Constants.MAX_SQRT_RATIO - 1),
+                abi.encode(path, payer)
+            );
     }
 
     /// @notice Deterministically computes the pool address given the poolDeployer and PoolKey
-    function computePoolAddress(address tokenA, address deployer, address tokenB)
-        internal
-        view
-        returns (address pool)
-    {
+    function computePoolAddress(address tokenA, address deployer, address tokenB) internal view returns (address pool) {
         if (tokenA > tokenB) (tokenA, tokenB) = (tokenB, tokenA);
         pool = address(
             uint160(

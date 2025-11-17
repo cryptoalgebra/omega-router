@@ -14,8 +14,9 @@ import {Commands} from '../libraries/Commands.sol';
 import {Lock} from './Lock.sol';
 import {ERC20} from 'solmate/src/tokens/ERC20.sol';
 import {IAllowanceTransfer} from 'permit2/src/interfaces/IAllowanceTransfer.sol';
-import {INonfungiblePositionManager} from
-    '@cryptoalgebra/integral-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
+import {
+    INonfungiblePositionManager
+} from '@cryptoalgebra/integral-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
 import {ActionConstants} from '../libraries/ActionConstants.sol';
 import {CalldataDecoder} from '../libraries/CalldataDecoder.sol';
 
@@ -116,14 +117,15 @@ abstract contract Dispatcher is
                             permitBatch := add(inputs.offset, calldataload(inputs.offset))
                         }
                         bytes calldata data = inputs.toBytes(1);
-                        (success, output) = address(PERMIT2).call(
-                            abi.encodeWithSignature(
-                                'permit(address,((address,uint160,uint48,uint48)[],address,uint256),bytes)',
-                                msgSender(),
-                                permitBatch,
-                                data
-                            )
-                        );
+                        (success, output) = address(PERMIT2)
+                            .call(
+                                abi.encodeWithSignature(
+                                    'permit(address,((address,uint160,uint48,uint48)[],address,uint256),bytes)',
+                                    msgSender(),
+                                    permitBatch,
+                                    data
+                                )
+                            );
                     } else if (command == Commands.SWEEP) {
                         // equivalent:  abi.decode(inputs, (address, address, uint256))
                         address token;
@@ -214,14 +216,15 @@ abstract contract Dispatcher is
                             permitSingle := inputs.offset
                         }
                         bytes calldata data = inputs.toBytes(6); // PermitSingle takes first 6 slots (0..5)
-                        (success, output) = address(PERMIT2).call(
-                            abi.encodeWithSignature(
-                                'permit(address,((address,uint160,uint48,uint48),address,uint256),bytes)',
-                                msgSender(),
-                                permitSingle,
-                                data
-                            )
-                        );
+                        (success, output) = address(PERMIT2)
+                            .call(
+                                abi.encodeWithSignature(
+                                    'permit(address,((address,uint160,uint48,uint48),address,uint256),bytes)',
+                                    msgSender(),
+                                    permitSingle,
+                                    data
+                                )
+                            );
                     } else if (command == Commands.WRAP_ETH) {
                         // equivalent: abi.decode(inputs, (address, uint256))
                         address recipient;
