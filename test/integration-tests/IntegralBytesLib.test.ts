@@ -32,8 +32,7 @@ describe('IntegralBytesLib Tests', () => {
       const token1 = '0x4200000000000000000000000000000000000006' // BASE_WETH
 
       // Encode path: token0 (20 bytes) + deployer (20 bytes) + token1 (20 bytes)
-      const path =
-        token0.toLowerCase() + customDeployer.slice(2).toLowerCase() + token1.slice(2).toLowerCase()
+      const path = token0.toLowerCase() + customDeployer.slice(2).toLowerCase() + token1.slice(2).toLowerCase()
 
       const result = await bytesLibTest.toPool(path)
 
@@ -69,10 +68,7 @@ describe('IntegralBytesLib Tests', () => {
       // Path with only 40 bytes (token0 + deployer), missing token1
       const invalidPath = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913f3b57fe4d5d0927c3a5e549cb6af1866687e2d62'
 
-      await expect(bytesLibTest.toPool(invalidPath)).to.be.revertedWithCustomError(
-        bytesLibTest,
-        'IntegralPathError'
-      )
+      await expect(bytesLibTest.toPool(invalidPath)).to.be.revertedWithCustomError(bytesLibTest, 'IntegralPathError')
     })
   })
 })
