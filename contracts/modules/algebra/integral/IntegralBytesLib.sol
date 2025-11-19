@@ -19,7 +19,7 @@ library IntegralBytesLib {
         assembly {
             let firstWord := calldataload(_bytes.offset)
             token0 := shr(96, firstWord)
-            deployer := shr(shr(96, firstWord), calldataload(add(_bytes.offset, 20)))
+            deployer := shr(96, calldataload(add(_bytes.offset, 20)))
             token1 := shr(96, calldataload(add(_bytes.offset, 40)))
         }
     }
