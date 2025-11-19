@@ -142,13 +142,14 @@ export function encodePath(path: string[]): string {
   return encoded.toLowerCase()
 }
 
-export function encodePathIntegral(path: string[]): string {
+export function encodePathIntegral(path: string[], deployer?: string): string {
+  const poolDeployer = deployer || DEFAULT_POOL_DEPLOYER
   let encoded = '0x'
   for (let i = 0; i < path.length - 1; i++) {
     // 20 byte encoding of the address
     encoded += path[i].slice(2)
     // 3 byte encoding of the fee
-    encoded += DEFAULT_POOL_DEPLOYER.slice(2)
+    encoded += poolDeployer.slice(2)
   }
   // encode the final token
   encoded += path[path.length - 1].slice(2)
@@ -164,12 +165,12 @@ export function encodePathExactOutput(tokens: string[]): string {
   return encodePath(tokens.slice().reverse())
 }
 
-export function encodePathExactInputIntegral(tokens: string[]): string {
-  return encodePathIntegral(tokens)
+export function encodePathExactInputIntegral(tokens: string[], deployer?: string): string {
+  return encodePathIntegral(tokens, deployer)
 }
 
-export function encodePathExactOutputIntegral(tokens: string[]): string {
-  return encodePathIntegral(tokens.slice().reverse())
+export function encodePathExactOutputIntegral(tokens: string[], deployer?: string): string {
+  return encodePathIntegral(tokens.slice().reverse(), deployer)
 }
 
 export function expandTo18Decimals(n: number): BigintIsh {
