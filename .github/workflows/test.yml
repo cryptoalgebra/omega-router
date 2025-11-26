@@ -51,3 +51,4 @@ jobs:
         env:
           INFURA_API_KEY: ${{ secrets.INFURA_API_KEY }}
           ANKR_API_KEY: ${{ secrets.ANKR_API_KEY }}
+          FOUNDRY_USE_LEGACY_RPC: "1"
