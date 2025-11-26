@@ -47,7 +47,7 @@ jobs:
         run: yarn compile
 
       - name: Run Integration tests
-        run: yarn test:hardhat
+        run: yarn test:hardhat --verbose
         env:
           INFURA_API_KEY: ${{ secrets.INFURA_API_KEY }}
           ANKR_API_KEY: ${{ secrets.ANKR_API_KEY }}
