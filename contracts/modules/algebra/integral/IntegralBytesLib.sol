@@ -23,4 +23,18 @@ library IntegralBytesLib {
             token1 := shr(96, calldataload(add(_bytes.offset, 40)))
         }
     }
+
+    function toBoostedPool(bytes calldata _bytes) internal pure returns (address token0, uint8 wrap0, address poolToken0, address deployer, address poolToken1, uint8 wrap1, address token1) {
+        if (_bytes.length < Constants.INTEGRAL_BOOSTED_POOL_POP_OFFSET) revert IntegralPathError();
+        assembly {
+            let firstWord := calldataload(_bytes.offset)
+            token0 := shr(96, firstWord)
+            wrap0 := and(shr(88, firstWord), 0xffffff)
+            poolToken0 := shr(96, calldataload(add(_bytes.offset, 21)))
+            deployer := shr(96, calldataload(add(_bytes.offset, 41)))
+            poolToken1 := shr(96, calldataload(add(_bytes.offset, 61)))
+            wrap1 := shr(248, calldataload(add(_bytes.offset, 81)))
+            token1 := shr(96, calldataload(add(_bytes.offset, 82)))
+        }
+    }
 }

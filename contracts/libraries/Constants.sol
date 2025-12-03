@@ -22,6 +22,8 @@ library Constants {
     /// @dev The length of the bytes encoded fee
     uint256 internal constant V3_FEE_SIZE = 3;
 
+    uint256 internal constant WRAP_FLAG = 1;
+
     /// @dev The offset of a single token address (20) and pool fee (3)
     uint256 internal constant NEXT_V3_POOL_OFFSET = ADDR_SIZE + V3_FEE_SIZE;
 
@@ -43,4 +45,16 @@ library Constants {
 
     /// @dev The minimum length of an encoding that contains 2 or more pools
     uint256 internal constant INTEGRAL_MULTIPLE_POOLS_MIN_LENGTH = INTEGRAL_POP_OFFSET + INTEGRAL_NEXT_OFFSET;
+
+    /// @dev The offset of a custom pool deployer address + pool tokens addresses + wrap flags
+    uint256 internal constant INTEGRAL_BOOSTED_POOL_OFFSET = WRAP_FLAG + ADDR_SIZE + ADDR_SIZE + ADDR_SIZE + WRAP_FLAG;
+
+    /// @dev The offset of a single token address + deployer address + pool tokens addresses + wrap flags
+    uint256 internal constant INTEGRAL_BOOSTED_POOL_NEXT_OFFSET = ADDR_SIZE + INTEGRAL_BOOSTED_POOL_OFFSET;
+
+    /// @dev The offset of an encoded pool key with boosted pools
+    uint256 internal constant INTEGRAL_BOOSTED_POOL_POP_OFFSET = INTEGRAL_BOOSTED_POOL_NEXT_OFFSET + ADDR_SIZE;
+
+    /// @dev The minimum length of an encoding that contains 2 or more pools
+    uint256 internal constant INTEGRAL_MULTIPLE_BOOSTED_POOLS_MIN_LENGTH = INTEGRAL_BOOSTED_POOL_POP_OFFSET + INTEGRAL_BOOSTED_POOL_NEXT_OFFSET;
 }
