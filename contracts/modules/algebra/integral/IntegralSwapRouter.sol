@@ -191,9 +191,13 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
             _integralSwap(-amountOut.toInt256(), recipient, path, payer, false);
 
         uint256 amountOutReceived = zeroForOne ? uint256(-amount1Delta) : uint256(-amount0Delta);
-        // TODO: should check amountOutReceived.preview?
-        if (amountOutReceived != amountOut) revert IntegralInvalidAmountOut();
+        
+        (, WrapAction wrapOut, address poolTokenOut,,,, ) = path.decodeFirstBoostedPool();
+        if (wrapOut == WrapAction.UNWRAP) {
+            amountOutReceived = IERC4626(poolTokenOut).previewRedeem(amountOutReceived);
+        }
 
+        if (amountOutReceived != amountOut) revert IntegralInvalidAmountOut();
         MaxInputAmount.set(0);
     }
 
