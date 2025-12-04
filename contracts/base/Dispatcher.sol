@@ -354,24 +354,8 @@ abstract contract Dispatcher is
                 } else if (command == Commands.INTEGRAL_POSITION_MANAGER_PERMIT) {
                     _checkV3PermitCall(inputs);
                     (success, output) = address(ALGEBRA_INTEGRAL_POSITION_MANAGER).call(inputs);
-                } else if (command == Commands.INTEGRAL_EXACT_OUT_WRAP_INPUT) {
-                    // equivalent: abi.decode(inputs, (address, uint256, uint256, bytes, bool))
-                    address recipient;
-                    uint256 amountOut;
-                    uint256 amountInMax;
-                    bool payerIsUser;
-                    assembly {
-                        recipient := calldataload(inputs.offset)
-                        amountOut := calldataload(add(inputs.offset, 0x20))
-                        amountInMax := calldataload(add(inputs.offset, 0x40))
-                        // 0x60 offset is the path, decoded below
-                        payerIsUser := calldataload(add(inputs.offset, 0x80))
-                    }
-                    bytes calldata path = inputs.toBytes(3);
-                    address payer = payerIsUser ? msgSender() : address(this);
-                    integralExactOutWrapInput(map(recipient), amountOut, amountInMax, path, payer);
                 } else {
-                    // placeholder area for commands 0x17-0x20
+                    // placeholder area for commands 0x16-0x20
                     revert InvalidCommandType(command);
                 }
             }

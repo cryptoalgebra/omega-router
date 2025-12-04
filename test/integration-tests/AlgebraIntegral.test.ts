@@ -20,7 +20,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import deployOmegaRouter from './shared/deployOmegaRouter'
 import { RoutePlanner, CommandType } from './shared/planner'
 import hre from 'hardhat'
-import { encodePathExactInputIntegral, encodePathExactOutputIntegral } from './shared/swapRouter02Helpers'
+import { encodePathExactInputIntegral, encodeSimpleBoostedPathExactOutput } from './shared/swapRouter02Helpers'
 import { executeRouter, DEX } from './shared/executeRouter'
 import { getPermitSignature, PermitSingle } from './shared/protocolHelpers/permit2'
 const { ethers } = hre
@@ -181,7 +181,7 @@ describe('Algebra Integral Tests:', () => {
       }
       const sig = await getPermitSignature(permit, bob, permit2)
 
-      const path = encodePathExactOutputIntegral([BASE_USDC.address, BASE_WETH.address])
+      const path = encodeSimpleBoostedPathExactOutput([BASE_USDC.address, BASE_WETH.address])
 
       // 1) permit the router to access funds, 2) trade, which takes the funds directly from permit2
       planner.addCommand(CommandType.PERMIT2_PERMIT, [permit, sig])
@@ -260,7 +260,7 @@ describe('Algebra Integral Tests:', () => {
     it('completes a V3 exactOut swap', async () => {
       // trade DAI in for WETH out
       const tokens = [BASE_USDC.address, BASE_WETH.address]
-      const path = encodePathExactOutputIntegral(tokens)
+      const path = encodeSimpleBoostedPathExactOutput(tokens)
 
       planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
         MSG_SENDER,
@@ -288,7 +288,7 @@ describe('Algebra Integral Tests:', () => {
     it('completes a V3 exactOut swap with longer path', async () => {
       // trade DAI in for WETH out
       const tokens = [BASE_DAI.address, BASE_USDC.address, BASE_WETH.address]
-      const path = encodePathExactOutputIntegral(tokens)
+      const path = encodeSimpleBoostedPathExactOutput(tokens)
       const amountInMax = expandTo18DecimalsBN(5000)
 
       planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
@@ -332,7 +332,7 @@ describe('Algebra Integral Tests:', () => {
     it('completes a V3 exactOut swap', async () => {
       // trade DAI in for WETH out
       const tokens = [BASE_USDC.address, BASE_WETH.address]
-      const path = encodePathExactOutputIntegral(tokens)
+      const path = encodeSimpleBoostedPathExactOutput(tokens)
 
       planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
         ADDRESS_THIS,
@@ -388,7 +388,7 @@ describe('Algebra Integral Tests:', () => {
 
     it('completes a V3 exactOut swap', async () => {
       const tokens = [BASE_WETH.address, BASE_USDC.address]
-      const path = encodePathExactOutputIntegral(tokens)
+      const path = encodeSimpleBoostedPathExactOutput(tokens)
 
       planner.addCommand(CommandType.WRAP_ETH, [ADDRESS_THIS, amountInMaxETH])
       planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
