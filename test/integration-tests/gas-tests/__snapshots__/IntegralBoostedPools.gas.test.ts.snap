@@ -1,0 +1,36 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Integral Boosted Pools Gas Tests exactIn swaps gas: exactIn USDC wrap -> swap -> unwrap WETH 1`] = `
+Object {
+  "calldataByteLength": 1220,
+  "gasUsed": 989747,
+}
+`;
+
+exports[`Integral Boosted Pools Gas Tests exactIn swaps gas: exactIn WETH wrap -> swap -> unwrap USDC 1`] = `
+Object {
+  "calldataByteLength": 1092,
+  "gasUsed": 978747,
+}
+`;
+
+exports[`Integral Boosted Pools Gas Tests exactOut swaps gas: exactOut multihop DAI -> wUSDC -> wWETH -> WETH 1`] = `
+Object {
+  "calldataByteLength": 644,
+  "gasUsed": 615213,
+}
+`;
+
+exports[`Integral Boosted Pools Gas Tests exactOut swaps gas: exactOut multihop with vault transition 1`] = `
+Object {
+  "calldataByteLength": 644,
+  "gasUsed": 1672858,
+}
+`;
+
+exports[`Integral Boosted Pools Gas Tests exactOut swaps gas: exactOut single-hop wrap + unwrap 1`] = `
+Object {
+  "calldataByteLength": 580,
+  "gasUsed": 1122147,
+}
+`;
