@@ -32,7 +32,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import deployOmegaRouter from './shared/deployOmegaRouter'
 import { CommandType, RoutePlanner } from './shared/planner'
 import hre from 'hardhat'
-import { encodePathExactInputIntegral, encodePathExactOutputIntegral } from './shared/swapRouter02Helpers'
+import { encodePathExactInputIntegral, encodeSingleBoostedPoolExactOutput, encodeBoostedPathExactOutput, WrapAction } from './shared/swapRouter02Helpers'
 import { DEX, executeRouter, ExecutionParams } from './shared/executeRouter'
 import { ADDRESS_ZERO } from '@uniswap/v3-sdk'
 import { encodePriceSqrt } from '../../lib/v3-periphery/test/shared/encodePriceSqrt'
@@ -243,19 +243,29 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       const amountOutWWETH = expandTo18DecimalsBN(0.01)
       const maxUSDCIn = expandTo6DecimalsBN(50)
 
-      // Path for exactOut (reversed): wWETH <- wUSDC
-      // First token in exactOut path is what we want to receive (wWETH)
-      // Last token is what pool expects as input (wUSDC - this will be wrapped from USDC)
-      const path = encodePathExactOutputIntegral([BASE_WM_USDC.address, BASE_WA_WETH.address])
+      // Boosted path for exactOut:
+      // tokenOut: wWETH (what user receives - no wrap needed)
+      // poolTokenOut: wWETH (what pool gives)
+      // poolTokenIn: wUSDC (what pool expects)
+      // tokenIn: USDC (what user pays - needs WRAP to wUSDC)
+      const path = encodeSingleBoostedPoolExactOutput(
+        BASE_WA_WETH.address,  // tokenOut - user receives wWETH
+        WrapAction.NONE,        // wrapOut - no wrap on output
+        BASE_WA_WETH.address,  // poolTokenOut - pool gives wWETH
+        ZERO_ADDRESS,           // deployer
+        BASE_WM_USDC.address,  // poolTokenIn - pool expects wUSDC
+        WrapAction.WRAP,        // wrapIn - wrap USDC to wUSDC
+        BASE_USDC.address       // tokenIn - user pays USDC
+      )
 
       const usdcBalanceBefore = await usdcContract.balanceOf(bob.address)
       const wWETHBalanceBefore = await wWETHContract.balanceOf(bob.address)
 
-      planner.addCommand(CommandType.INTEGRAL_EXACT_OUT_WRAP_INPUT, [
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
         MSG_SENDER, // recipient - gets wWETH
         amountOutWWETH, // exact amount out in wWETH
         maxUSDCIn, // max amount in USDC (will be wrapped to wUSDC)
-        path, // path: wWETH <- wUSDC
+        path, // boosted path
         MSG_SENDER, // payer - permit2 will take from msg.sender
       ])
 
@@ -329,22 +339,49 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
         deadline: 10000000000000,
       })
 
-      // Multihop exactOut: Want 100 DAI, path: wUSDC -> wWETH -> DAI
-      // Only the last hop (USDC -> wUSDC) should wrap
+      // Multihop exactOut: Want 100 DAI
+      // Flow: User pays USDC -> wrap to wUSDC -> swap to wWETH -> swap to DAI -> User receives DAI
+      // 
+      // Hop 1 (first in exactOut = last executed): DAI <- wWETH
+      //   tokenOut: DAI, poolTokenOut: DAI, poolTokenIn: wWETH, tokenIn: wWETH (no wrap)
+      // 
+      // Hop 2 (last in exactOut = first executed): wWETH <- wUSDC  
+      //   tokenOut: wWETH, poolTokenOut: wWETH, poolTokenIn: wUSDC, tokenIn: USDC (WRAP)
+      
       const amountOutDAI = expandTo18DecimalsBN(100)
       const maxUSDCIn = expandTo6DecimalsBN(100)
 
-      // Path for exactOut: wUSDC -> wWETH -> DAI (encodePathExactOutputIntegral will reverse it)
-      const path = encodePathExactOutputIntegral([BASE_WM_USDC.address, BASE_WA_WETH.address, BASE_DAI.address])
+      const path = encodeBoostedPathExactOutput([
+        // Hop 1: DAI <- wWETH (no wrap on either side)
+        {
+          tokenOut: BASE_DAI.address,
+          wrapOut: WrapAction.NONE,
+          poolTokenOut: BASE_DAI.address,
+          deployer: ZERO_ADDRESS,
+          poolTokenIn: BASE_WA_WETH.address,
+          wrapIn: WrapAction.NONE,
+          tokenIn: BASE_WA_WETH.address  // will be overwritten by next hop's tokenOut
+        },
+        // Hop 2: wWETH <- wUSDC (wrap USDC to wUSDC on input)
+        {
+          tokenOut: BASE_WA_WETH.address,
+          wrapOut: WrapAction.NONE,
+          poolTokenOut: BASE_WA_WETH.address,
+          deployer: ZERO_ADDRESS,
+          poolTokenIn: BASE_WM_USDC.address,
+          wrapIn: WrapAction.WRAP,
+          tokenIn: BASE_USDC.address
+        }
+      ])
 
       const usdcBalanceBefore = await usdcContract.balanceOf(bob.address)
       const daiBalanceBefore = await daiContract.balanceOf(bob.address)
 
-      planner.addCommand(CommandType.INTEGRAL_EXACT_OUT_WRAP_INPUT, [
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
         MSG_SENDER, // recipient - gets DAI
         amountOutDAI, // exact amount out in DAI
         maxUSDCIn, // max amount in USDC (will be wrapped to wUSDC)
-        path, // path: DAI <- wWETH <- wUSDC
+        path, // boosted path
         MSG_SENDER, // payer
       ])
 

@@ -91,11 +91,9 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
                 
                 // After swap completes, handle wrap if needed and pay to the pool
                 if (wrapIn == WrapAction.WRAP) {
-                    // Wrap underlying to poolTokenIn and send to pool
                     IERC20(tokenIn).forceApprove(poolTokenIn, nextSwapAmount);
                     IERC4626(poolTokenIn).mint(amountToPay, msg.sender);
                 } else if (wrapIn == WrapAction.UNWRAP) {
-                    // Unwrap vault tokens to underlying and send to pool
                     IERC4626(tokenIn).redeem(nextSwapAmount, msg.sender, address(this));
                 }
                 // If wrapIn == NONE, tokens already sent directly to pool
@@ -104,7 +102,7 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
                 uint256 amountFromPayer = amountToPay;
                 
                 if (wrapIn == WrapAction.WRAP) {
-                    // Wrap - payer sends underlying, router wraps and sends vault tokens to pool
+                    // Wrap - payer sends underlying, router wraps and sends vault tokens to the pool
                     amountFromPayer = IERC4626(poolTokenIn).previewMint(amountToPay);
                     if (amountFromPayer > MaxInputAmount.get()) revert IntegralTooMuchRequested();
                     
@@ -113,7 +111,7 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
                     IERC4626(poolTokenIn).mint(amountToPay, msg.sender);
                 } else if (wrapIn == WrapAction.UNWRAP) {
                     // TODO: do we need to handle UNWRAP case here?
-                    // Unwrap - payer sends vault tokens, router unwraps and sends underlying to pool
+                    // Unwrap - payer sends vault tokens, router unwraps and sends underlying to the pool
                     amountFromPayer = IERC4626(tokenIn).previewWithdraw(amountToPay);
                     if (amountFromPayer > MaxInputAmount.get()) revert IntegralTooMuchRequested();
                     
