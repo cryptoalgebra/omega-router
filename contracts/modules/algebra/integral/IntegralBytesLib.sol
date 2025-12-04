@@ -35,16 +35,22 @@ library IntegralBytesLib {
     /// @return poolToken1 The pool token address at byte 61
     /// @return wrap1 The wrap action for token1 (NONE, WRAP, or UNWRAP)
     /// @return token1 The external token address at byte 82
-    function toBoostedPool(bytes calldata _bytes) internal pure returns (
-        address token0,
-        WrapAction wrap0,
-        address poolToken0,
-        address deployer,
-        address poolToken1,
-        WrapAction wrap1,
-        address token1
-    ) {
-        if (_bytes.length < Constants.INTEGRAL_BOOSTED_POOL_POP_OFFSET) revert IntegralPathError();
+    function toBoostedPool(bytes calldata _bytes)
+        internal
+        pure
+        returns (
+            address token0,
+            WrapAction wrap0,
+            address poolToken0,
+            address deployer,
+            address poolToken1,
+            WrapAction wrap1,
+            address token1
+        )
+    {
+        if (_bytes.length < Constants.INTEGRAL_BOOSTED_POOL_POP_OFFSET) {
+            revert IntegralPathError();
+        }
         uint8 rawWrap0;
         uint8 rawWrap1;
         assembly {

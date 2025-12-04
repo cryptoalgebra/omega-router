@@ -34,7 +34,12 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import deployOmegaRouter from '../shared/deployOmegaRouter'
 import { CommandType, RoutePlanner } from '../shared/planner'
 import hre from 'hardhat'
-import { encodePathExactInputIntegral, encodeSingleBoostedPoolExactOutput, encodeBoostedPathExactOutput, WrapAction } from '../shared/swapRouter02Helpers'
+import {
+  encodePathExactInputIntegral,
+  encodeSingleBoostedPoolExactOutput,
+  encodeBoostedPathExactOutput,
+  WrapAction,
+} from '../shared/swapRouter02Helpers'
 import { ADDRESS_ZERO } from '@uniswap/v3-sdk'
 import { encodePriceSqrt } from '../../../lib/v3-periphery/test/shared/encodePriceSqrt'
 import { getMaxTick, getMinTick } from '../../../lib/v3-periphery/test/shared/ticks'
@@ -252,13 +257,7 @@ describe('Integral Boosted Pools Gas Tests', () => {
         BASE_USDC.address
       )
 
-      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
-        MSG_SENDER,
-        amountOutWETH,
-        maxUSDCIn,
-        path,
-        MSG_SENDER,
-      ])
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [MSG_SENDER, amountOutWETH, maxUSDCIn, path, MSG_SENDER])
 
       const { commands, inputs } = planner
       await snapshotGasCost(router.connect(bob)['execute(bytes,bytes[],uint256)'](commands, inputs, DEADLINE))
@@ -311,7 +310,7 @@ describe('Integral Boosted Pools Gas Tests', () => {
           deployer: ZERO_ADDRESS,
           poolTokenIn: BASE_WM_USDC.address,
           wrapIn: WrapAction.NONE,
-          tokenIn: BASE_WM_USDC.address
+          tokenIn: BASE_WM_USDC.address,
         },
         {
           tokenOut: BASE_WM_USDC.address,
@@ -320,17 +319,11 @@ describe('Integral Boosted Pools Gas Tests', () => {
           deployer: ZERO_ADDRESS,
           poolTokenIn: BASE_DAI.address,
           wrapIn: WrapAction.NONE,
-          tokenIn: BASE_DAI.address
-        }
+          tokenIn: BASE_DAI.address,
+        },
       ])
 
-      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
-        MSG_SENDER,
-        amountOutWETH,
-        maxDAIIn,
-        path,
-        MSG_SENDER,
-      ])
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [MSG_SENDER, amountOutWETH, maxDAIIn, path, MSG_SENDER])
 
       const { commands, inputs } = planner
       await snapshotGasCost(router.connect(bob)['execute(bytes,bytes[],uint256)'](commands, inputs, DEADLINE))
@@ -387,7 +380,7 @@ describe('Integral Boosted Pools Gas Tests', () => {
         BASE_WA_USDC.address < BASE_WA_WETH.address ? BASE_WA_USDC.address : BASE_WA_WETH.address,
         BASE_WA_USDC.address < BASE_WA_WETH.address ? BASE_WA_WETH.address : BASE_WA_USDC.address,
         ADDRESS_ZERO,
-        encodePriceSqrt(10**18, 4200 * 10**6),
+        encodePriceSqrt(10 ** 18, 4200 * 10 ** 6),
         '0x'
       )
 
@@ -416,7 +409,7 @@ describe('Integral Boosted Pools Gas Tests', () => {
           deployer: ZERO_ADDRESS,
           poolTokenIn: BASE_WA_USDC.address,
           wrapIn: WrapAction.WRAP,
-          tokenIn: BASE_USDC.address
+          tokenIn: BASE_USDC.address,
         },
         {
           tokenOut: BASE_USDC.address,
@@ -425,17 +418,11 @@ describe('Integral Boosted Pools Gas Tests', () => {
           deployer: ZERO_ADDRESS,
           poolTokenIn: BASE_SPARK_USDC.address,
           wrapIn: WrapAction.WRAP,
-          tokenIn: BASE_USDC.address
-        }
+          tokenIn: BASE_USDC.address,
+        },
       ])
 
-      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
-        MSG_SENDER,
-        amountOutWETH,
-        maxUSDCIn,
-        path,
-        MSG_SENDER,
-      ])
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [MSG_SENDER, amountOutWETH, maxUSDCIn, path, MSG_SENDER])
 
       const { commands, inputs } = planner
       await snapshotGasCost(router.connect(bob)['execute(bytes,bytes[],uint256)'](commands, inputs, DEADLINE))

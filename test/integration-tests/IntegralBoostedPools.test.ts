@@ -35,7 +35,12 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import deployOmegaRouter from './shared/deployOmegaRouter'
 import { CommandType, RoutePlanner } from './shared/planner'
 import hre from 'hardhat'
-import { encodePathExactInputIntegral, encodeSingleBoostedPoolExactOutput, encodeBoostedPathExactOutput, WrapAction } from './shared/swapRouter02Helpers'
+import {
+  encodePathExactInputIntegral,
+  encodeSingleBoostedPoolExactOutput,
+  encodeBoostedPathExactOutput,
+  WrapAction,
+} from './shared/swapRouter02Helpers'
 import { DEX, executeRouter, ExecutionParams } from './shared/executeRouter'
 import { ADDRESS_ZERO } from '@uniswap/v3-sdk'
 import { encodePriceSqrt } from '../../lib/v3-periphery/test/shared/encodePriceSqrt'
@@ -262,13 +267,7 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       const usdcBalanceBefore = await usdcContract.balanceOf(bob.address)
       const wethBalanceBefore = await wethContract.balanceOf(bob.address)
 
-      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
-        MSG_SENDER,
-        amountOutWETH,
-        maxUSDCIn,
-        path,
-        MSG_SENDER,
-      ])
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [MSG_SENDER, amountOutWETH, maxUSDCIn, path, MSG_SENDER])
 
       await executeRouter(
         planner,
@@ -344,7 +343,7 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
           deployer: ZERO_ADDRESS,
           poolTokenIn: BASE_WM_USDC.address,
           wrapIn: WrapAction.NONE,
-          tokenIn: BASE_WM_USDC.address
+          tokenIn: BASE_WM_USDC.address,
         },
         {
           tokenOut: BASE_WM_USDC.address,
@@ -353,20 +352,14 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
           deployer: ZERO_ADDRESS,
           poolTokenIn: BASE_DAI.address,
           wrapIn: WrapAction.NONE,
-          tokenIn: BASE_DAI.address
-        }
+          tokenIn: BASE_DAI.address,
+        },
       ])
 
       const daiBalanceBefore = await daiContract.balanceOf(bob.address)
       const wethBalanceBefore = await wethContract.balanceOf(bob.address)
 
-      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
-        MSG_SENDER,
-        amountOutWETH,
-        maxDAIIn,
-        path,
-        MSG_SENDER,
-      ])
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [MSG_SENDER, amountOutWETH, maxDAIIn, path, MSG_SENDER])
 
       await executeRouter(
         planner,
@@ -448,7 +441,7 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
         BASE_WA_USDC.address < BASE_WA_WETH.address ? BASE_WA_USDC.address : BASE_WA_WETH.address,
         BASE_WA_USDC.address < BASE_WA_WETH.address ? BASE_WA_WETH.address : BASE_WA_USDC.address,
         ADDRESS_ZERO,
-        encodePriceSqrt(10**18, 4200 * 10**6),
+        encodePriceSqrt(10 ** 18, 4200 * 10 ** 6),
         '0x'
       )
 
@@ -470,13 +463,13 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       const maxUSDCIn = expandTo6DecimalsBN(50)
 
       // Path: USDC -> spUSDC (wrap) -> wmUSDC -> waUSDC (unwrap wmUSDC, wrap waUSDC) -> wWETH -> WETH (unwrap)
-      // 
+      //
       // Hop 1 (first in path): waUSDC/wWETH pool
       //   - User receives WETH (unwrap from wWETH)
       //   - Pool gives wWETH, expects waUSDC
       //   - waUSDC comes from wrapping USDC (which came from unwrap wmUSDC)
       //
-      // Hop 2 (last in path): spUSDC/wmUSDC pool  
+      // Hop 2 (last in path): spUSDC/wmUSDC pool
       //   - Output: USDC (unwrap from wmUSDC) -> goes to wrap waUSDC
       //   - Pool gives wmUSDC, expects spUSDC
       //   - spUSDC comes from wrapping user's USDC
@@ -490,7 +483,7 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
           deployer: ZERO_ADDRESS,
           poolTokenIn: BASE_WA_USDC.address,
           wrapIn: WrapAction.WRAP,
-          tokenIn: BASE_USDC.address
+          tokenIn: BASE_USDC.address,
         },
         // Hop 2: spUSDC/wmUSDC pool - unwrap wmUSDC to USDC, wrap USDC to spUSDC
         {
@@ -500,20 +493,14 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
           deployer: ZERO_ADDRESS,
           poolTokenIn: BASE_SPARK_USDC.address,
           wrapIn: WrapAction.WRAP,
-          tokenIn: BASE_USDC.address
-        }
+          tokenIn: BASE_USDC.address,
+        },
       ])
 
       const usdcBalanceBefore = await usdcContract.balanceOf(bob.address)
       const wethBalanceBefore = await wethContract.balanceOf(bob.address)
 
-      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
-        MSG_SENDER,
-        amountOutWETH,
-        maxUSDCIn,
-        path,
-        MSG_SENDER,
-      ])
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [MSG_SENDER, amountOutWETH, maxUSDCIn, path, MSG_SENDER])
 
       await executeRouter(
         planner,

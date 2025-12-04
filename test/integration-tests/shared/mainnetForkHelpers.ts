@@ -71,17 +71,10 @@ export const BASE_WA_USDC = new Token(
   'waUSDC',
   'Wrapped Aave USDC'
 )
-export const BASE_SPARK_USDC = new Token(
-  8453,
-  '0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A',
-  18,
-  'spUSDC',
-  'Spark USDC'
-)
+export const BASE_SPARK_USDC = new Token(8453, '0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A', 18, 'spUSDC', 'Spark USDC')
 
 export const BASE_DAI_WHALE = '0x0772f014009162efB833eF34d3eA3f243FC735Ba'
 export const BASE_USDC_WHALE = '0xaac391f166f33cdaefaa4afa6616a3bea66b694d'
-
 
 export interface MethodParameters {
   /**

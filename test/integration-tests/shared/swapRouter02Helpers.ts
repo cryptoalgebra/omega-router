@@ -180,31 +180,31 @@ export const WrapAction = {
   UNWRAP: 2,
 } as const
 
-export type WrapActionType = typeof WrapAction[keyof typeof WrapAction]
+export type WrapActionType = (typeof WrapAction)[keyof typeof WrapAction]
 
 export interface BoostedPoolHop {
-  tokenOut: string       // External token user wants
+  tokenOut: string // External token user wants
   wrapOut: WrapActionType // Action for output: NONE, WRAP, UNWRAP
-  poolTokenOut: string   // Token pool trades (may be wrapped version)
-  deployer: string       // Pool deployer address
-  poolTokenIn: string    // Token pool accepts as input
-  wrapIn: WrapActionType // Action for input: NONE, WRAP, UNWRAP  
-  tokenIn: string        // External token user provides
+  poolTokenOut: string // Token pool trades (may be wrapped version)
+  deployer: string // Pool deployer address
+  poolTokenIn: string // Token pool accepts as input
+  wrapIn: WrapActionType // Action for input: NONE, WRAP, UNWRAP
+  tokenIn: string // External token user provides
 }
 
 /**
  * Encodes a boosted path for exactOut swaps with wrap/unwrap support
- * 
+ *
  * Path structure per hop: tokenOut(20) | wrapOut(1) | poolTokenOut(20) | deployer(20) | poolTokenIn(20) | wrapIn(1) | tokenIn(20)
- * 
+ *
  * For multihop, the tokenIn of one hop becomes the tokenOut of the next hop
  */
 export function encodeBoostedPathExactOutput(hops: BoostedPoolHop[]): string {
   let encoded = '0x'
-  
+
   for (let i = 0; i < hops.length; i++) {
     const hop = hops[i]
-    
+
     // tokenOut (20 bytes)
     encoded += hop.tokenOut.slice(2).toLowerCase()
     // wrapOut (1 byte)
@@ -217,13 +217,13 @@ export function encodeBoostedPathExactOutput(hops: BoostedPoolHop[]): string {
     encoded += hop.poolTokenIn.slice(2).toLowerCase()
     // wrapIn (1 byte)
     encoded += hop.wrapIn.toString(16).padStart(2, '0')
-    
+
     // tokenIn (20 bytes) - only for last hop, otherwise it's encoded as tokenOut of next hop
     if (i === hops.length - 1) {
       encoded += hop.tokenIn.slice(2).toLowerCase()
     }
   }
-  
+
   return encoded
 }
 
@@ -239,15 +239,17 @@ export function encodeSingleBoostedPoolExactOutput(
   wrapIn: WrapActionType,
   tokenIn: string
 ): string {
-  return encodeBoostedPathExactOutput([{
-    tokenOut,
-    wrapOut,
-    poolTokenOut,
-    deployer,
-    poolTokenIn,
-    wrapIn,
-    tokenIn
-  }])
+  return encodeBoostedPathExactOutput([
+    {
+      tokenOut,
+      wrapOut,
+      poolTokenOut,
+      deployer,
+      poolTokenIn,
+      wrapIn,
+      tokenIn,
+    },
+  ])
 }
 
 export function expandTo18Decimals(n: number): BigintIsh {
@@ -257,30 +259,33 @@ export function expandTo18Decimals(n: number): BigintIsh {
 /**
  * Helper to create a simple boosted path for exactOut without any wrap/unwrap
  * tokenIn == poolTokenIn and tokenOut == poolTokenOut
- * 
+ *
  * @param tokens Array of token addresses in swap order (e.g., [tokenIn, tokenOut] for single hop)
  * @param deployer Pool deployer address (defaults to ZERO_ADDRESS)
  */
-export function encodeSimpleBoostedPathExactOutput(tokens: string[], deployer: string = '0x0000000000000000000000000000000000000000'): string {
+export function encodeSimpleBoostedPathExactOutput(
+  tokens: string[],
+  deployer: string = '0x0000000000000000000000000000000000000000'
+): string {
   // Reverse tokens for exactOut (path goes from output to input)
   const reversedTokens = tokens.slice().reverse()
-  
+
   const hops: BoostedPoolHop[] = []
-  
+
   for (let i = 0; i < reversedTokens.length - 1; i++) {
     const tokenOut = reversedTokens[i]
     const tokenIn = reversedTokens[i + 1]
-    
+
     hops.push({
       tokenOut,
       wrapOut: WrapAction.NONE,
-      poolTokenOut: tokenOut,  // same as tokenOut (no wrap)
+      poolTokenOut: tokenOut, // same as tokenOut (no wrap)
       deployer,
-      poolTokenIn: tokenIn,    // same as tokenIn (no wrap)
+      poolTokenIn: tokenIn, // same as tokenIn (no wrap)
       wrapIn: WrapAction.NONE,
-      tokenIn
+      tokenIn,
     })
   }
-  
+
   return encodeBoostedPathExactOutput(hops)
 }

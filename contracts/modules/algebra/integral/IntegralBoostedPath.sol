@@ -23,7 +23,11 @@ library IntegralBoostedPath {
     /// @return tokenA The first token of the given pool
     /// @return deployer The deployer address of the given pool
     /// @return tokenB The second token of the given pool
-    function decodeFirstBoostedPool(bytes calldata path) internal pure returns (address, WrapAction, address, address, address, WrapAction, address) {
+    function decodeFirstBoostedPool(bytes calldata path)
+        internal
+        pure
+        returns (address, WrapAction, address, address, address, WrapAction, address)
+    {
         return path.toBoostedPool();
     }
 

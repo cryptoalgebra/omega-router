@@ -45,10 +45,9 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
         if (isExactIn) {
             (address tokenIn, address deployer, address tokenOut) = path.decodeFirstPool();
             if (computePoolAddress(tokenIn, deployer, tokenOut) != msg.sender) revert IntegralInvalidCaller();
-            
+
             uint256 amountToPay = amount0Delta > 0 ? uint256(amount0Delta) : uint256(amount1Delta);
             payOrPermit2Transfer(tokenIn, payer, msg.sender, amountToPay);
-            
         } else {
             // tokenOut | wrapOut | poolTokenOut | deployer | poolTokenIn | wrapIn | tokenIn
             (
@@ -82,13 +81,13 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
                     // UNWRAP on input is invalid
                     revert IntegralInvalidBoostedPath();
                 }
-                
+
                 bytes calldata nextPath = path.skipTokenInBoostedPath();
-                
+
                 // If no wrap needed, send directly to pool
                 address nextRecipient = (wrapIn == WrapAction.NONE) ? msg.sender : address(this);
                 _integralSwap(-nextSwapAmount.toInt256(), nextRecipient, nextPath, payer, false);
-                
+
                 // After swap completes, handle wrap if needed and pay to the pool
                 if (wrapIn == WrapAction.WRAP) {
                     IERC20(tokenIn).forceApprove(poolTokenIn, nextSwapAmount);
@@ -98,12 +97,12 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
             } else {
                 // Last hop - pay from payer
                 uint256 amountFromPayer = amountToPay;
-                
+
                 if (wrapIn == WrapAction.WRAP) {
                     // Wrap - payer sends underlying, router wraps and sends vault tokens to the pool
                     amountFromPayer = IERC4626(poolTokenIn).previewMint(amountToPay);
                     if (amountFromPayer > MaxInputAmount.get()) revert IntegralTooMuchRequested();
-                    
+
                     payOrPermit2Transfer(tokenIn, payer, address(this), amountFromPayer);
                     IERC20(tokenIn).forceApprove(poolTokenIn, amountFromPayer);
                     IERC4626(poolTokenIn).mint(amountToPay, msg.sender);
@@ -184,8 +183,8 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
             _integralSwap(-amountOut.toInt256(), recipient, path, payer, false);
 
         uint256 amountOutReceived = zeroForOne ? uint256(-amount1Delta) : uint256(-amount0Delta);
-        
-        (, WrapAction wrapOut, address poolTokenOut,,,, ) = path.decodeFirstBoostedPool();
+
+        (, WrapAction wrapOut, address poolTokenOut,,,,) = path.decodeFirstBoostedPool();
         if (wrapOut == WrapAction.UNWRAP) {
             amountOutReceived = IERC4626(poolTokenOut).previewRedeem(amountOutReceived);
         }
@@ -212,10 +211,10 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
             WrapAction wrapOut;
             uint256 amountOut = uint256(-amount);
             // tokenOut | wrapOut | poolTokenOut | deployer | poolTokenIn | wrapIn | tokenIn
-            ( , wrapOut, tokenOut, deployer, tokenIn, ,) = path.decodeFirstBoostedPool();
-            if (wrapOut == WrapAction.UNWRAP){
+            (, wrapOut, tokenOut, deployer, tokenIn,,) = path.decodeFirstBoostedPool();
+            if (wrapOut == WrapAction.UNWRAP) {
                 amount = -(IERC4626(tokenOut).previewWithdraw(amountOut)).toInt256();
-                recipient = address(this); 
+                recipient = address(this);
             } else if (wrapOut == WrapAction.WRAP) {
                 revert IntegralInvalidBoostedPath();
             }
