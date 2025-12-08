@@ -38,8 +38,7 @@ library Commands {
     uint256 constant INTEGRAL_MINT = 0x13;
     uint256 constant INTEGRAL_POSITION_MANAGER_PERMIT = 0x14;
     uint256 constant INTEGRAL_INCREASE_LIQUIDITY = 0x15;
-    uint256 constant INTEGRAL_EXACT_OUT_WRAP_INPUT = 0x16;
-    // COMMAND_PLACEHOLDER = 0x17 -> 0x20
+    // COMMAND_PLACEHOLDER = 0x16 -> 0x20
 
     // Command Types where 0x21<=value<=0x3f
     uint256 constant EXECUTE_SUB_PLAN = 0x21;
