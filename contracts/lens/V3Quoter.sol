@@ -23,11 +23,15 @@ abstract contract V3Quoter is UniswapImmutables, IUniswapV3SwapCallback {
     uint256 private amountOutCached;
 
     /// @inheritdoc IUniswapV3SwapCallback
-    function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external view override {
+    function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data)
+        external
+        view
+        override
+    {
         require(amount0Delta > 0 || amount1Delta > 0); // swaps entirely within 0-liquidity regions are not supported
-        
+
         (address tokenIn, uint24 fee, address tokenOut) = data.decodeFirstPool();
-        
+
         // Verify callback is from pool
         require(msg.sender == _computePoolAddress(tokenIn, tokenOut, fee), 'Invalid pool');
 
@@ -64,11 +68,7 @@ abstract contract V3Quoter is UniswapImmutables, IUniswapV3SwapCallback {
     /// @return gasEstimate The estimate of the gas that the swap consumes
     function v3QuoteExactInput(bytes calldata path, uint256 amountIn)
         internal
-        returns (
-            uint256 amountOut,
-            uint160[] memory sqrtPriceX96AfterList,
-            uint256 gasEstimate
-        )
+        returns (uint256 amountOut, uint160[] memory sqrtPriceX96AfterList, uint256 gasEstimate)
     {
         sqrtPriceX96AfterList = new uint160[](path.numPools());
 
@@ -81,7 +81,7 @@ abstract contract V3Quoter is UniswapImmutables, IUniswapV3SwapCallback {
             (uint256 amountOut_, uint160 sqrtPriceX96After) =
                 _quoteExactInputSingle(tokenIn, tokenOut, fee, amountIn, 0);
             gasEstimate += gasBefore - gasleft();
-            
+
             sqrtPriceX96AfterList[i] = sqrtPriceX96After;
             amountIn = amountOut_;
             i++;
@@ -103,11 +103,7 @@ abstract contract V3Quoter is UniswapImmutables, IUniswapV3SwapCallback {
     /// @return gasEstimate The estimate of the gas that the swap consumes
     function v3QuoteExactOutput(bytes calldata path, uint256 amountOut)
         internal
-        returns (
-            uint256 amountIn,
-            uint160[] memory sqrtPriceX96AfterList,
-            uint256 gasEstimate
-        )
+        returns (uint256 amountIn, uint160[] memory sqrtPriceX96AfterList, uint256 gasEstimate)
     {
         sqrtPriceX96AfterList = new uint160[](path.numPools());
 
@@ -145,15 +141,17 @@ abstract contract V3Quoter is UniswapImmutables, IUniswapV3SwapCallback {
         bool zeroForOne = tokenIn < tokenOut;
         bytes memory data = abi.encodePacked(tokenIn, fee, tokenOut);
 
-        try IUniswapV3Pool(_computePoolAddress(tokenIn, tokenOut, fee)).swap(
-            address(this), // recipient
-            zeroForOne,
-            amountIn.toInt256(),
-            sqrtPriceLimitX96 == 0
-                ? (zeroForOne ? Constants.MIN_SQRT_RATIO + 1 : Constants.MAX_SQRT_RATIO - 1)
-                : sqrtPriceLimitX96,
-            data
-        ) {} catch (bytes memory reason) {
+        try IUniswapV3Pool(_computePoolAddress(tokenIn, tokenOut, fee))
+            .swap(
+                address(this), // recipient
+                zeroForOne,
+                amountIn.toInt256(),
+                sqrtPriceLimitX96 == 0
+                    ? (zeroForOne ? Constants.MIN_SQRT_RATIO + 1 : Constants.MAX_SQRT_RATIO - 1)
+                    : sqrtPriceLimitX96,
+                data
+            ) {}
+        catch (bytes memory reason) {
             return _v3ParseRevertReason(reason);
         }
     }
@@ -171,16 +169,18 @@ abstract contract V3Quoter is UniswapImmutables, IUniswapV3SwapCallback {
 
         // if no price limit has been specified, cache the output amount for comparison in the swap callback
         if (sqrtPriceLimitX96 == 0) amountOutCached = amountOut;
-        
-        try IUniswapV3Pool(_computePoolAddress(tokenIn, tokenOut, fee)).swap(
-            address(this), // recipient
-            zeroForOne,
-            -amountOut.toInt256(),
-            sqrtPriceLimitX96 == 0
-                ? (zeroForOne ? Constants.MIN_SQRT_RATIO + 1 : Constants.MAX_SQRT_RATIO - 1)
-                : sqrtPriceLimitX96,
-            data
-        ) {} catch (bytes memory reason) {
+
+        try IUniswapV3Pool(_computePoolAddress(tokenIn, tokenOut, fee))
+            .swap(
+                address(this), // recipient
+                zeroForOne,
+                -amountOut.toInt256(),
+                sqrtPriceLimitX96 == 0
+                    ? (zeroForOne ? Constants.MIN_SQRT_RATIO + 1 : Constants.MAX_SQRT_RATIO - 1)
+                    : sqrtPriceLimitX96,
+                data
+            ) {}
+        catch (bytes memory reason) {
             if (sqrtPriceLimitX96 == 0) delete amountOutCached;
             return _v3ParseRevertReason(reason);
         }

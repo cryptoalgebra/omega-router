@@ -26,7 +26,11 @@ contract OmegaQuoter is QuoterDispatcher {
     {}
 
     /// @inheritdoc QuoterDispatcher
-    function execute(bytes calldata commands, bytes[] calldata inputs) external override returns (bytes[] memory outputs) {
+    function execute(bytes calldata commands, bytes[] calldata inputs)
+        external
+        override
+        returns (bytes[] memory outputs)
+    {
         outputs = new bytes[](commands.length);
         uint256 numCommands = commands.length;
         if (inputs.length != numCommands) revert LengthMismatch();
@@ -40,7 +44,7 @@ contract OmegaQuoter is QuoterDispatcher {
             if (!success && successRequired(command)) {
                 revert ExecutionFailed({commandIndex: commandIndex, message: output});
             }
-            
+
             outputs[commandIndex] = output;
         }
 

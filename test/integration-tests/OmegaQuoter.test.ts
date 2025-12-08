@@ -182,9 +182,7 @@ describe('OmegaQuoter Tests:', () => {
         const amountIn = expandTo6DecimalsBN(100)
 
         const commands = '0x' + CommandType.ERC4626_WRAP.toString(16).padStart(2, '0')
-        const inputs = [
-          defaultAbiCoder.encode(['address', 'uint256'], [MAINNET_WA_USDC.address, amountIn]),
-        ]
+        const inputs = [defaultAbiCoder.encode(['address', 'uint256'], [MAINNET_WA_USDC.address, amountIn])]
 
         const outputs = await quoter.callStatic.execute(commands, inputs)
         expect(outputs.length).to.equal(1)
@@ -199,9 +197,7 @@ describe('OmegaQuoter Tests:', () => {
         const amountIn = expandTo6DecimalsBN(100)
 
         const commands = '0x' + CommandType.ERC4626_UNWRAP.toString(16).padStart(2, '0')
-        const inputs = [
-          defaultAbiCoder.encode(['address', 'uint256'], [MAINNET_WA_USDC.address, amountIn]),
-        ]
+        const inputs = [defaultAbiCoder.encode(['address', 'uint256'], [MAINNET_WA_USDC.address, amountIn])]
 
         const outputs = await quoter.callStatic.execute(commands, inputs)
         expect(outputs.length).to.equal(1)
@@ -215,14 +211,15 @@ describe('OmegaQuoter Tests:', () => {
     describe('Using CONTRACT_BALANCE for chaining', () => {
       it('quotes V3 swap -> V2 swap using CONTRACT_BALANCE', async () => {
         const amountIn = expandTo18DecimalsBN(100)
-        
+
         // First swap: DAI -> WETH on V3
         const pathV3 = encodePathExactInput([MAINNET_DAI.address, MAINNET_WETH.address])
         // Second swap: WETH -> USDC on V2, using output from first swap
         const pathV2 = [MAINNET_WETH.address, MAINNET_USDC.address]
 
         const commands =
-          '0x' + CommandType.UNISWAP_V3_SWAP_EXACT_IN.toString(16).padStart(2, '0') +
+          '0x' +
+          CommandType.UNISWAP_V3_SWAP_EXACT_IN.toString(16).padStart(2, '0') +
           CommandType.V2_SWAP_EXACT_IN.toString(16).padStart(2, '0')
         const inputs = [
           defaultAbiCoder.encode(['uint256', 'bytes'], [amountIn, pathV3]),
@@ -241,14 +238,15 @@ describe('OmegaQuoter Tests:', () => {
 
       it('quotes V2 swap -> V3 swap using CONTRACT_BALANCE', async () => {
         const amountIn = expandTo18DecimalsBN(100)
-        
+
         // First swap: DAI -> USDC on V2
         const pathV2 = [MAINNET_DAI.address, MAINNET_USDC.address]
         // Second swap: USDC -> WETH on V3, using output from first swap
         const pathV3 = encodePathExactInput([MAINNET_USDC.address, MAINNET_WETH.address])
 
         const commands =
-          '0x' + CommandType.V2_SWAP_EXACT_IN.toString(16).padStart(2, '0') +
+          '0x' +
+          CommandType.V2_SWAP_EXACT_IN.toString(16).padStart(2, '0') +
           CommandType.UNISWAP_V3_SWAP_EXACT_IN.toString(16).padStart(2, '0')
         const inputs = [
           defaultAbiCoder.encode(['uint256', 'address[]'], [amountIn, pathV2]),
@@ -334,14 +332,15 @@ describe('OmegaQuoter Tests:', () => {
 
     it('chains Integral swap -> Integral swap using CONTRACT_BALANCE', async () => {
       const amountIn = expandTo18DecimalsBN(100)
-      
+
       // First: swap DAI -> USDC on Integral
       // Second: swap USDC -> WETH on Integral, using output from first swap
       const pathFirst = encodePathExactInputIntegral([BASE_DAI.address, BASE_USDC.address])
       const pathSecond = encodePathExactInputIntegral([BASE_USDC.address, BASE_WETH.address])
 
       const commands =
-        '0x' + CommandType.INTEGRAL_SWAP_EXACT_IN.toString(16).padStart(2, '0') +
+        '0x' +
+        CommandType.INTEGRAL_SWAP_EXACT_IN.toString(16).padStart(2, '0') +
         CommandType.INTEGRAL_SWAP_EXACT_IN.toString(16).padStart(2, '0')
       const inputs = [
         defaultAbiCoder.encode(['uint256', 'bytes'], [amountIn, pathFirst]),
@@ -351,16 +350,10 @@ describe('OmegaQuoter Tests:', () => {
       const outputs = await quoter.callStatic.execute(commands, inputs)
       expect(outputs.length).to.equal(2)
 
-      const [amountOutFirst] = defaultAbiCoder.decode(
-        ['uint256', 'uint160[]', 'uint256'],
-        outputs[0]
-      )
+      const [amountOutFirst] = defaultAbiCoder.decode(['uint256', 'uint160[]', 'uint256'], outputs[0])
       expect(amountOutFirst).to.be.gt(expandTo6DecimalsBN(95))
 
-      const [amountOutSecond] = defaultAbiCoder.decode(
-        ['uint256', 'uint160[]', 'uint256'],
-        outputs[1]
-      )
+      const [amountOutSecond] = defaultAbiCoder.decode(['uint256', 'uint160[]', 'uint256'], outputs[1])
       expect(amountOutSecond).to.be.gt(expandTo18DecimalsBN(0.02))
     })
   })

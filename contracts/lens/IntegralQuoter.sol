@@ -5,7 +5,9 @@ import {IntegralPath} from '../modules/algebra/integral/IntegralPath.sol';
 import {SafeCast} from '@cryptoalgebra/integral-core/contracts/libraries/SafeCast.sol';
 import {CalldataDecoder} from '../libraries/CalldataDecoder.sol';
 import {IAlgebraPool} from '@cryptoalgebra/integral-core/contracts/interfaces/IAlgebraPool.sol';
-import {IAlgebraSwapCallback} from '@cryptoalgebra/integral-core/contracts/interfaces/callback/IAlgebraSwapCallback.sol';
+import {
+    IAlgebraSwapCallback
+} from '@cryptoalgebra/integral-core/contracts/interfaces/callback/IAlgebraSwapCallback.sol';
 import {Constants} from '../libraries/Constants.sol';
 import {AlgebraImmutables} from '../modules/algebra/AlgebraImmutables.sol';
 
@@ -25,7 +27,7 @@ abstract contract IntegralQuoter is AlgebraImmutables, IAlgebraSwapCallback {
     /// @inheritdoc IAlgebraSwapCallback
     function algebraSwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external view override {
         require(amount0Delta > 0 || amount1Delta > 0); // swaps entirely within 0-liquidity regions are not supported
-        
+
         (address tokenIn, address deployer, address tokenOut) = data.decodeFirstPool();
         // Verify callback is from pool
         require(msg.sender == _computePoolAddress(tokenIn, deployer, tokenOut), 'Invalid pool');
@@ -35,7 +37,7 @@ abstract contract IntegralQuoter is AlgebraImmutables, IAlgebraSwapCallback {
             : (tokenOut < tokenIn, uint256(amount1Delta), uint256(-amount0Delta));
 
         IAlgebraPool pool = IAlgebraPool(msg.sender);
-        (uint160 sqrtPriceX96After,,,,, ) = pool.globalState();
+        (uint160 sqrtPriceX96After,,,,,) = pool.globalState();
         if (isExactInput) {
             assembly {
                 let ptr := mload(0x40)
@@ -63,11 +65,7 @@ abstract contract IntegralQuoter is AlgebraImmutables, IAlgebraSwapCallback {
     /// @return gasEstimate The estimate of the gas that the swap consumes
     function integralQuoteExactInput(bytes calldata path, uint256 amountIn)
         internal
-        returns (
-            uint256 amountOut,
-            uint160[] memory sqrtPriceX96AfterList,
-            uint256 gasEstimate
-        )
+        returns (uint256 amountOut, uint160[] memory sqrtPriceX96AfterList, uint256 gasEstimate)
     {
         sqrtPriceX96AfterList = new uint160[](path.numPools());
 
@@ -102,11 +100,7 @@ abstract contract IntegralQuoter is AlgebraImmutables, IAlgebraSwapCallback {
     /// @return gasEstimate The estimate of the gas that the swap consumes
     function integralQuoteExactOutput(bytes calldata path, uint256 amountOut)
         internal
-        returns (
-            uint256 amountIn,
-            uint160[] memory sqrtPriceX96AfterList,
-            uint256 gasEstimate
-        )
+        returns (uint256 amountIn, uint160[] memory sqrtPriceX96AfterList, uint256 gasEstimate)
     {
         sqrtPriceX96AfterList = new uint160[](path.numPools());
 
@@ -143,15 +137,17 @@ abstract contract IntegralQuoter is AlgebraImmutables, IAlgebraSwapCallback {
         bool zeroForOne = tokenIn < tokenOut;
         bytes memory data = abi.encodePacked(tokenIn, deployer, tokenOut);
 
-        try IAlgebraPool(_computePoolAddress(tokenIn, deployer, tokenOut)).swap(
-            address(this), // recipient
-            zeroForOne,
-            amountIn.toInt256(),
-            sqrtPriceLimitX96 == 0
-                ? (zeroForOne ? Constants.MIN_SQRT_RATIO + 1 : Constants.MAX_SQRT_RATIO - 1)
-                : sqrtPriceLimitX96,
-            data
-        ) {} catch (bytes memory reason) {
+        try IAlgebraPool(_computePoolAddress(tokenIn, deployer, tokenOut))
+            .swap(
+                address(this), // recipient
+                zeroForOne,
+                amountIn.toInt256(),
+                sqrtPriceLimitX96 == 0
+                    ? (zeroForOne ? Constants.MIN_SQRT_RATIO + 1 : Constants.MAX_SQRT_RATIO - 1)
+                    : sqrtPriceLimitX96,
+                data
+            ) {}
+        catch (bytes memory reason) {
             return _integralParseRevertReason(reason);
         }
     }
@@ -169,16 +165,18 @@ abstract contract IntegralQuoter is AlgebraImmutables, IAlgebraSwapCallback {
 
         // if no price limit has been specified, cache the output amount for comparison in the swap callback
         if (sqrtPriceLimitX96 == 0) amountOutCached = amountOut;
-        
-        try IAlgebraPool(_computePoolAddress(tokenIn, deployer, tokenOut)).swap(
-            address(this), // recipient
-            zeroForOne,
-            -amountOut.toInt256(),
-            sqrtPriceLimitX96 == 0
-                ? (zeroForOne ? Constants.MIN_SQRT_RATIO + 1 : Constants.MAX_SQRT_RATIO - 1)
-                : sqrtPriceLimitX96,
-            data
-        ) {} catch (bytes memory reason) {
+
+        try IAlgebraPool(_computePoolAddress(tokenIn, deployer, tokenOut))
+            .swap(
+                address(this), // recipient
+                zeroForOne,
+                -amountOut.toInt256(),
+                sqrtPriceLimitX96 == 0
+                    ? (zeroForOne ? Constants.MIN_SQRT_RATIO + 1 : Constants.MAX_SQRT_RATIO - 1)
+                    : sqrtPriceLimitX96,
+                data
+            ) {}
+        catch (bytes memory reason) {
             if (sqrtPriceLimitX96 == 0) delete amountOutCached;
             return _integralParseRevertReason(reason);
         }
@@ -192,7 +190,7 @@ abstract contract IntegralQuoter is AlgebraImmutables, IAlgebraSwapCallback {
         private
         pure
         returns (uint256 amount, uint160 sqrtPriceX96After)
-    {   
+    {
         if (reason.length != 64) {
             if (reason.length < 68) revert('Unexpected error');
             assembly {

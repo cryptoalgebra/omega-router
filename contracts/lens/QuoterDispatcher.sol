@@ -12,12 +12,7 @@ import {ActionConstants} from '../libraries/ActionConstants.sol';
 
 /// @title Decodes and Executes Quote Commands
 /// @notice Provides quotes for swaps without executing them
-abstract contract QuoterDispatcher is
-    IntegralQuoter,
-    V3Quoter,
-    V2Quoter,
-    ERC4626Quoter
-{
+abstract contract QuoterDispatcher is IntegralQuoter, V3Quoter, V2Quoter, ERC4626Quoter {
     using IntegralBytesLib for bytes;
     using CalldataDecoder for bytes;
 
@@ -52,11 +47,10 @@ abstract contract QuoterDispatcher is
                 amountIn = amountOutCached;
             }
             bytes calldata path = inputs.toBytes(1);
-            (uint256 amountOut, uint160[] memory sqrtPriceX96AfterList, uint256 gasEstimate) = 
+            (uint256 amountOut, uint160[] memory sqrtPriceX96AfterList, uint256 gasEstimate) =
                 integralQuoteExactInput(path, amountIn);
             amountOutCached = amountOut;
             output = abi.encode(amountOut, sqrtPriceX96AfterList, gasEstimate);
-            
         } else if (command == Commands.INTEGRAL_SWAP_EXACT_OUT) {
             // abi.decode(inputs, (uint256, bytes))
             uint256 amountOut;
@@ -65,11 +59,10 @@ abstract contract QuoterDispatcher is
                 // 0x20 offset is the path, decoded below
             }
             bytes calldata path = inputs.toBytes(1);
-            (uint256 amountIn, uint160[] memory sqrtPriceX96AfterList, uint256 gasEstimate) = 
+            (uint256 amountIn, uint160[] memory sqrtPriceX96AfterList, uint256 gasEstimate) =
                 integralQuoteExactOutput(path, amountOut);
             amountOutCached = amountOut;
             output = abi.encode(amountIn, sqrtPriceX96AfterList, gasEstimate);
-            
         } else if (command == Commands.V2_SWAP_EXACT_IN) {
             // abi.decode(inputs, (uint256, address[]))
             uint256 amountIn;
@@ -84,7 +77,6 @@ abstract contract QuoterDispatcher is
             uint256 amountOut = v2QuoteExactInput(amountIn, path);
             amountOutCached = amountOut;
             output = abi.encode(amountOut);
-            
         } else if (command == Commands.V2_SWAP_EXACT_OUT) {
             // abi.decode(inputs, (uint256, address[]))
             uint256 amountOut;
@@ -96,7 +88,6 @@ abstract contract QuoterDispatcher is
             uint256 amountIn = v2QuoteExactOutput(amountOut, path);
             amountOutCached = amountOut;
             output = abi.encode(amountIn);
-            
         } else if (command == Commands.UNISWAP_V3_SWAP_EXACT_IN) {
             // abi.decode(inputs, (uint256, bytes))
             uint256 amountIn;
@@ -108,11 +99,10 @@ abstract contract QuoterDispatcher is
                 amountIn = amountOutCached;
             }
             bytes calldata path = inputs.toBytes(1);
-            (uint256 amountOut, uint160[] memory sqrtPriceX96AfterList, uint256 gasEstimate) = 
+            (uint256 amountOut, uint160[] memory sqrtPriceX96AfterList, uint256 gasEstimate) =
                 v3QuoteExactInput(path, amountIn);
             amountOutCached = amountOut;
             output = abi.encode(amountOut, sqrtPriceX96AfterList, gasEstimate);
-            
         } else if (command == Commands.UNISWAP_V3_SWAP_EXACT_OUT) {
             // abi.decode(inputs, (uint256, bytes))
             uint256 amountOut;
@@ -121,11 +111,10 @@ abstract contract QuoterDispatcher is
                 // 0x20 offset is the path, decoded below
             }
             bytes calldata path = inputs.toBytes(1);
-            (uint256 amountIn, uint160[] memory sqrtPriceX96AfterList, uint256 gasEstimate) = 
+            (uint256 amountIn, uint160[] memory sqrtPriceX96AfterList, uint256 gasEstimate) =
                 v3QuoteExactOutput(path, amountOut);
             amountOutCached = amountOut;
             output = abi.encode(amountIn, sqrtPriceX96AfterList, gasEstimate);
-            
         } else if (command == Commands.ERC4626_WRAP) {
             // abi.decode(inputs, (address, uint256))
             address wrapper;
@@ -140,7 +129,6 @@ abstract contract QuoterDispatcher is
             uint256 amountOut = erc4626QuoteWrap(wrapper, amountIn);
             amountOutCached = amountOut;
             output = abi.encode(amountOut);
-            
         } else if (command == Commands.ERC4626_UNWRAP) {
             // abi.decode(inputs, (address, uint256))
             address wrapper;
@@ -155,11 +143,9 @@ abstract contract QuoterDispatcher is
             uint256 amountOut = erc4626QuoteUnwrap(wrapper, amountIn);
             amountOutCached = amountOut;
             output = abi.encode(amountOut);
-            
         } else if (command == Commands.EXECUTE_SUB_PLAN) {
             (bytes calldata _commands, bytes[] calldata _inputs) = inputs.decodeActionsRouterParams();
             (success, output) = (address(this)).call(abi.encodeCall(QuoterDispatcher.execute, (_commands, _inputs)));
-            
         } else {
             revert InvalidCommandType(command);
         }
