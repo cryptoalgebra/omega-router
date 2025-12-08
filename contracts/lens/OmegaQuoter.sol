@@ -43,6 +43,8 @@ contract OmegaQuoter is QuoterDispatcher {
             
             outputs[commandIndex] = output;
         }
+
+        amountOutCached = 0;
     }
 
     function successRequired(bytes1 command) internal pure returns (bool) {
