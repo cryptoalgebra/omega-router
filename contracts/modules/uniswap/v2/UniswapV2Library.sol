@@ -115,6 +115,28 @@ library UniswapV2Library {
         amountIn = (numerator / denominator) + 1;
     }
 
+    /// @notice Returns the output amount for a given input amount in a multi-hop trade
+    /// @param factory The address of the v2 factory
+    /// @param initCodeHash The hash of the pair initcode
+    /// @param amountIn The input amount
+    /// @param path The path of the multi-hop trade
+    /// @return amount The output amount of the output token
+    function getAmountOutMultihop(address factory, bytes32 initCodeHash, uint256 amountIn, address[] calldata path)
+        internal
+        view
+        returns (uint256 amount)
+    {
+        if (path.length < 2) revert InvalidPath();
+        amount = amountIn;
+        for (uint256 i = 0; i < path.length - 1; i++) {
+            uint256 reserveIn;
+            uint256 reserveOut;
+
+            (, reserveIn, reserveOut) = pairAndReservesFor(factory, initCodeHash, path[i], path[i + 1]);
+            amount = getAmountOut(amount, reserveIn, reserveOut);
+        }
+    }
+
     /// @notice Returns the input amount needed for a desired output amount in a multi-hop trade
     /// @param factory The address of the v2 factory
     /// @param initCodeHash The hash of the pair initcode
