@@ -26,8 +26,7 @@ abstract contract V3Quoter is UniswapImmutables, IUniswapV3SwapCallback {
     function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external view override {
         require(amount0Delta > 0 || amount1Delta > 0); // swaps entirely within 0-liquidity regions are not supported
         
-        bytes calldata path = data.toBytes(0);
-        (address tokenIn, uint24 fee, address tokenOut) = path.decodeFirstPool();
+        (address tokenIn, uint24 fee, address tokenOut) = data.decodeFirstPool();
         
         // Verify callback is from pool
         require(msg.sender == _computePoolAddress(tokenIn, tokenOut, fee), 'Invalid pool');
@@ -38,7 +37,6 @@ abstract contract V3Quoter is UniswapImmutables, IUniswapV3SwapCallback {
 
         IUniswapV3Pool pool = IUniswapV3Pool(msg.sender);
         (uint160 sqrtPriceX96After,,,,,,) = pool.slot0();
-
         if (isExactInput) {
             assembly {
                 let ptr := mload(0x40)
@@ -145,6 +143,7 @@ abstract contract V3Quoter is UniswapImmutables, IUniswapV3SwapCallback {
         uint160 sqrtPriceLimitX96
     ) private returns (uint256 amountOut, uint160 sqrtPriceX96After) {
         bool zeroForOne = tokenIn < tokenOut;
+        bytes memory data = abi.encodePacked(tokenIn, fee, tokenOut);
 
         try IUniswapV3Pool(_computePoolAddress(tokenIn, tokenOut, fee)).swap(
             address(this), // recipient
@@ -153,7 +152,7 @@ abstract contract V3Quoter is UniswapImmutables, IUniswapV3SwapCallback {
             sqrtPriceLimitX96 == 0
                 ? (zeroForOne ? Constants.MIN_SQRT_RATIO + 1 : Constants.MAX_SQRT_RATIO - 1)
                 : sqrtPriceLimitX96,
-            abi.encode(tokenIn, tokenOut, fee)
+            data
         ) {} catch (bytes memory reason) {
             return _v3ParseRevertReason(reason);
         }
@@ -168,6 +167,7 @@ abstract contract V3Quoter is UniswapImmutables, IUniswapV3SwapCallback {
         uint160 sqrtPriceLimitX96
     ) private returns (uint256 amountIn, uint160 sqrtPriceX96After) {
         bool zeroForOne = tokenIn < tokenOut;
+        bytes memory data = abi.encodePacked(tokenOut, fee, tokenIn);
 
         // if no price limit has been specified, cache the output amount for comparison in the swap callback
         if (sqrtPriceLimitX96 == 0) amountOutCached = amountOut;
@@ -179,7 +179,7 @@ abstract contract V3Quoter is UniswapImmutables, IUniswapV3SwapCallback {
             sqrtPriceLimitX96 == 0
                 ? (zeroForOne ? Constants.MIN_SQRT_RATIO + 1 : Constants.MAX_SQRT_RATIO - 1)
                 : sqrtPriceLimitX96,
-            abi.encode(tokenIn, tokenOut, fee)
+            data
         ) {} catch (bytes memory reason) {
             if (sqrtPriceLimitX96 == 0) delete amountOutCached;
             return _v3ParseRevertReason(reason);
