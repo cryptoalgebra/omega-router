@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IntegralPath} from '../modules/algebra/integral/IntegralPath.sol';
+import {IntegralBoostedPath} from '../modules/algebra/integral/IntegralBoostedPath.sol';
 import {SafeCast} from '@cryptoalgebra/integral-core/contracts/libraries/SafeCast.sol';
 import {CalldataDecoder} from '../libraries/CalldataDecoder.sol';
 import {IAlgebraPool} from '@cryptoalgebra/integral-core/contracts/interfaces/IAlgebraPool.sol';
@@ -10,6 +11,8 @@ import {
 } from '@cryptoalgebra/integral-core/contracts/interfaces/callback/IAlgebraSwapCallback.sol';
 import {Constants} from '../libraries/Constants.sol';
 import {AlgebraImmutables} from '../modules/algebra/AlgebraImmutables.sol';
+import {WrapAction} from '../libraries/WrapAction.sol';
+import {IERC4626} from '@openzeppelin/contracts/interfaces/IERC4626.sol';
 
 /// @title Quoter for Algebra Integral swaps
 /// @notice Allows getting the expected amount out or amount in for a given swap without executing the swap
@@ -17,6 +20,7 @@ import {AlgebraImmutables} from '../modules/algebra/AlgebraImmutables.sol';
 /// the swap and check the amounts in the callback.
 abstract contract IntegralQuoter is AlgebraImmutables, IAlgebraSwapCallback {
     using IntegralPath for bytes;
+    using IntegralBoostedPath for bytes;
     using CalldataDecoder for bytes;
     using SafeCast for uint256;
     using SafeCast for int256;
@@ -93,7 +97,7 @@ abstract contract IntegralQuoter is AlgebraImmutables, IAlgebraSwapCallback {
     }
 
     /// @notice Returns the amount in required for a given exact output swap without executing the swap
-    /// @param path The path of the swap, i.e. each token pair and the deployer. Path must be provided in reverse order
+    /// @param path The path of the swap, i.e. each token pair and the deployer. Supports boosted path with wrap/unwrap
     /// @param amountOut The amount of the last token to receive
     /// @return amountIn The amount of first token required to be paid
     /// @return sqrtPriceX96AfterList List of the sqrt price after the swap for each pool in the path
@@ -102,25 +106,38 @@ abstract contract IntegralQuoter is AlgebraImmutables, IAlgebraSwapCallback {
         internal
         returns (uint256 amountIn, uint160[] memory sqrtPriceX96AfterList, uint256 gasEstimate)
     {
-        sqrtPriceX96AfterList = new uint160[](path.numPools());
+        sqrtPriceX96AfterList = new uint160[](path.boostedNumPools());
 
         uint256 i = 0;
+        uint256 currentAmountOut = amountOut;
+
         while (true) {
-            (address tokenOut, address deployer, address tokenIn) = path.decodeFirstPool();
-            bool hasMultiplePools = path.hasMultiplePools();
+            (, WrapAction wrapOut, address poolTokenOut, address deployer, address poolTokenIn, WrapAction wrapIn,) =
+                path.decodeFirstBoostedPool();
+
+            bool hasMultiplePools = path.hasMultipleBoostedPools();
+
+            uint256 poolAmountOut = currentAmountOut;
+            if (wrapOut == WrapAction.UNWRAP) {
+                poolAmountOut = IERC4626(poolTokenOut).previewWithdraw(currentAmountOut);
+            }
 
             uint256 gasBefore = gasleft();
-            (uint256 amountIn_, uint160 sqrtPriceX96After) =
-                _quoteExactOutputSingle(tokenIn, deployer, tokenOut, amountOut, 0);
+            (uint256 poolAmountIn, uint160 sqrtPriceX96After) =
+                _quoteExactOutputSingle(poolTokenIn, deployer, poolTokenOut, poolAmountOut, 0);
             gasEstimate += gasBefore - gasleft();
 
             sqrtPriceX96AfterList[i] = sqrtPriceX96After;
-            amountOut = amountIn_;
             i++;
+
+            uint256 nextAmount =
+                wrapIn == WrapAction.WRAP ? IERC4626(poolTokenIn).previewMint(poolAmountIn) : poolAmountIn;
+
             if (hasMultiplePools) {
-                path = path.skipToken();
+                currentAmountOut = nextAmount;
+                path = path.skipTokenInBoostedPath();
             } else {
-                amountIn = amountOut;
+                amountIn = nextAmount;
                 break;
             }
         }
