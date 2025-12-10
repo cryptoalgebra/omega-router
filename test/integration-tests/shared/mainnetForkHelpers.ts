@@ -75,6 +75,7 @@ export const BASE_SPARK_USDC = new Token(8453, '0x7BfA7C4f149E7415b73bdeDfe60923
 
 export const BASE_DAI_WHALE = '0x0772f014009162efB833eF34d3eA3f243FC735Ba'
 export const BASE_USDC_WHALE = '0xaac391f166f33cdaefaa4afa6616a3bea66b694d'
+export const BASE_WETH_WHALE = '0x621e7c767004266c8109e83143ab0da521b650d6'
 
 export interface MethodParameters {
   /**

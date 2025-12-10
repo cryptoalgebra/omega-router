@@ -1,6 +1,8 @@
 import { expect } from './shared/expect'
 import { OmegaQuoter } from '../../typechain'
 import { abi as ERC4626_ABI } from '../../artifacts/@openzeppelin/contracts/interfaces/IERC4626.sol/IERC4626.json'
+import { abi as TOKEN_ABI } from '../../artifacts/solmate/src/tokens/ERC20.sol/ERC20.json'
+import { Contract } from '@ethersproject/contracts'
 import {
   resetFork,
   MAINNET_WETH,
@@ -10,6 +12,11 @@ import {
   BASE_WETH,
   BASE_USDC,
   BASE_DAI,
+  BASE_WM_USDC,
+  BASE_WA_WETH,
+  BASE_USDC_WHALE,
+  INTEGRAL_NFT_POSITION_MANAGER,
+  BASE_WETH_WHALE,
 } from './shared/mainnetForkHelpers'
 import {
   CONTRACT_BALANCE,
@@ -22,6 +29,8 @@ import {
   INTEGRAL_POOL_DEPLOYER,
   INTEGRAL_NFT_POSITION_MANAGER_MAINNET,
   INTEGRAL_INIT_CODE_HASH_MAINNET,
+  BASE_ALICE_ADDRESS,
+  MAX_UINT,
 } from './shared/constants'
 import { expandTo18DecimalsBN, expandTo6DecimalsBN } from './shared/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -33,7 +42,12 @@ import {
   encodePathExactOutput,
   encodePathExactInputIntegral,
   encodePathExactOutputIntegral,
+  encodeSingleBoostedPoolExactOutput,
+  WrapAction,
 } from './shared/swapRouter02Helpers'
+import { ADDRESS_ZERO } from '@uniswap/v3-sdk'
+import { encodePriceSqrt } from '../../lib/v3-periphery/test/shared/encodePriceSqrt'
+import { getMaxTick, getMinTick } from '../../lib/v3-periphery/test/shared/ticks'
 const { ethers } = hre
 
 describe('OmegaQuoter Tests:', () => {
@@ -355,6 +369,103 @@ describe('OmegaQuoter Tests:', () => {
 
       const [amountOutSecond] = defaultAbiCoder.decode(['uint256', 'uint160[]', 'uint256'], outputs[1])
       expect(amountOutSecond).to.be.gt(expandTo18DecimalsBN(0.02))
+    })
+
+    describe('Boosted Pools with ERC4626', () => {
+      let alice: SignerWithAddress
+      let usdcContract: Contract
+      let wethContract: Contract
+      let wWETHContract: Contract
+      let wUSDCContract: Contract
+
+      beforeEach('create boosted pool', async () => {
+        await hre.network.provider.request({
+          method: 'hardhat_impersonateAccount',
+          params: [BASE_ALICE_ADDRESS],
+        })
+        alice = await ethers.getSigner(BASE_ALICE_ADDRESS)
+
+        usdcContract = new ethers.Contract(BASE_USDC.address, TOKEN_ABI, alice)
+        wethContract = new ethers.Contract(BASE_WETH.address, TOKEN_ABI, alice)
+        wWETHContract = new ethers.Contract(BASE_WA_WETH.address, ERC4626_ABI, alice)
+        wUSDCContract = new ethers.Contract(BASE_WM_USDC.address, ERC4626_ABI, alice)
+
+        await wethContract.approve(BASE_WA_WETH.address, MAX_UINT)
+        await usdcContract.approve(BASE_WM_USDC.address, MAX_UINT)
+
+        await hre.network.provider.request({
+          method: 'hardhat_impersonateAccount',
+          params: [BASE_USDC_WHALE],
+        })
+        const usdcWhale = await ethers.getSigner(BASE_USDC_WHALE)
+        await usdcContract.connect(usdcWhale).transfer(alice.address, expandTo6DecimalsBN(1000000))
+
+        await hre.network.provider.request({
+          method: 'hardhat_impersonateAccount',
+          params: [BASE_WETH_WHALE],
+        })
+        const wethWhale = await ethers.getSigner(BASE_WETH_WHALE)
+        await wethContract.connect(wethWhale).transfer(alice.address, expandTo18DecimalsBN(30))
+
+        await wWETHContract.deposit(expandTo18DecimalsBN(21.4), alice.address)
+        await wUSDCContract.deposit(expandTo6DecimalsBN(90000), alice.address)
+
+        const wWETHAmount = await wWETHContract.balanceOf(alice.address)
+        const wUSDCAmount = await wUSDCContract.balanceOf(alice.address)
+
+        await INTEGRAL_NFT_POSITION_MANAGER.connect(alice).createAndInitializePoolIfNecessary(
+          wUSDCContract.address,
+          wWETHContract.address,
+          ADDRESS_ZERO,
+          encodePriceSqrt(wWETHAmount, wUSDCAmount),
+          '0x'
+        )
+
+        await wWETHContract.approve(INTEGRAL_NFT_POSITION_MANAGER.address, MAX_UINT)
+        await wUSDCContract.approve(INTEGRAL_NFT_POSITION_MANAGER.address, MAX_UINT)
+
+        await INTEGRAL_NFT_POSITION_MANAGER.connect(alice).mint({
+          token0: wUSDCContract.address,
+          token1: wWETHContract.address,
+          deployer: ADDRESS_ZERO,
+          tickLower: getMinTick(60),
+          tickUpper: getMaxTick(60),
+          amount0Desired: wUSDCAmount,
+          amount1Desired: wWETHAmount,
+          amount0Min: 0,
+          amount1Min: 0,
+          recipient: alice.address,
+          deadline: 10000000000000,
+        })
+      })
+
+      it('quotes exactOut with boosted path: USDC -> wUSDC -> wWETH -> WETH', async () => {
+        const amountOut = expandTo18DecimalsBN(0.01)
+        const path = encodeSingleBoostedPoolExactOutput(
+          BASE_WETH.address,
+          WrapAction.UNWRAP,
+          BASE_WA_WETH.address,
+          ADDRESS_ZERO,
+          BASE_WM_USDC.address,
+          WrapAction.WRAP,
+          BASE_USDC.address
+        )
+
+        const commands = '0x' + CommandType.INTEGRAL_SWAP_EXACT_OUT.toString(16).padStart(2, '0')
+        const inputs = [defaultAbiCoder.encode(['uint256', 'bytes'], [amountOut, path])]
+
+        const outputs = await quoter.callStatic.execute(commands, inputs)
+        expect(outputs.length).to.equal(1)
+
+        const [amountIn, sqrtPriceX96AfterList, gasEstimate] = defaultAbiCoder.decode(
+          ['uint256', 'uint160[]', 'uint256'],
+          outputs[0]
+        )
+        expect(amountIn).to.be.gt(expandTo6DecimalsBN(30))
+        expect(amountIn).to.be.lt(expandTo6DecimalsBN(60))
+        expect(sqrtPriceX96AfterList.length).to.equal(1)
+        expect(gasEstimate).to.be.gt(0)
+      })
     })
   })
 })
