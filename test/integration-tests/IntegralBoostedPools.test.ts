@@ -7,10 +7,13 @@ import { abi as ERC4626_ABI } from '../../artifacts/@openzeppelin/contracts/inte
 import {
   BASE_DAI,
   BASE_DAI_WHALE,
+  BASE_USDC_WHALE,
   BASE_USDC,
+  BASE_WA_USDC,
   BASE_WA_WETH,
   BASE_WETH,
   BASE_WM_USDC,
+  BASE_SPARK_USDC,
   INTEGRAL_NFT_POSITION_MANAGER,
   PERMIT2,
   resetFork,
@@ -32,7 +35,12 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import deployOmegaRouter from './shared/deployOmegaRouter'
 import { CommandType, RoutePlanner } from './shared/planner'
 import hre from 'hardhat'
-import { encodePathExactInputIntegral, encodePathExactOutputIntegral } from './shared/swapRouter02Helpers'
+import {
+  encodePathExactInputIntegral,
+  encodeSingleBoostedPoolExactOutput,
+  encodeBoostedPathExactOutput,
+  WrapAction,
+} from './shared/swapRouter02Helpers'
 import { DEX, executeRouter, ExecutionParams } from './shared/executeRouter'
 import { ADDRESS_ZERO } from '@uniswap/v3-sdk'
 import { encodePriceSqrt } from '../../lib/v3-periphery/test/shared/encodePriceSqrt'
@@ -184,6 +192,13 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       await wethContract.connect(alice).approve(BASE_WA_WETH.address, MAX_UINT)
       await usdcContract.connect(alice).approve(BASE_WM_USDC.address, MAX_UINT)
 
+      const baseWhale = await ethers.getSigner(BASE_USDC_WHALE)
+      await hre.network.provider.request({
+        method: 'hardhat_impersonateAccount',
+        params: [BASE_USDC_WHALE],
+      })
+      await usdcContract.connect(baseWhale).transfer(alice.address, expandTo6DecimalsBN(1000000))
+
       await wWETHContract.connect(alice).deposit(expandTo18DecimalsBN(21.4), alice.address)
       await wUSDCContract.connect(alice).deposit(expandTo6DecimalsBN(90000), alice.address)
 
@@ -235,29 +250,24 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       expect(expand6To18DecimalsBN(usdcBalanceAfter.sub(usdcBalanceBefore))).to.be.gt(amountOut)
     })
 
-    it('exactOut wrap: USDC -> wUSDC -> wWETH (user has unwrapped, pool needs wrapped)', async () => {
-      // User has USDC (unwrapped)
-      // Pool: wUSDC -> wWETH (wrapped tokens)
-      // ExactOut: Want exactly 0.01 wWETH
-
-      const amountOutWWETH = expandTo18DecimalsBN(0.01)
+    it('exactOut wrap: USDC -> wUSDC -> wWETH -> WETH', async () => {
+      const amountOutWETH = expandTo18DecimalsBN(0.01)
       const maxUSDCIn = expandTo6DecimalsBN(50)
 
-      // Path for exactOut (reversed): wWETH <- wUSDC
-      // First token in exactOut path is what we want to receive (wWETH)
-      // Last token is what pool expects as input (wUSDC - this will be wrapped from USDC)
-      const path = encodePathExactOutputIntegral([BASE_WM_USDC.address, BASE_WA_WETH.address])
+      const path = encodeSingleBoostedPoolExactOutput(
+        BASE_WETH.address,
+        WrapAction.UNWRAP,
+        BASE_WA_WETH.address,
+        ZERO_ADDRESS,
+        BASE_WM_USDC.address,
+        WrapAction.WRAP,
+        BASE_USDC.address
+      )
 
       const usdcBalanceBefore = await usdcContract.balanceOf(bob.address)
-      const wWETHBalanceBefore = await wWETHContract.balanceOf(bob.address)
+      const wethBalanceBefore = await wethContract.balanceOf(bob.address)
 
-      planner.addCommand(CommandType.INTEGRAL_EXACT_OUT_WRAP_INPUT, [
-        MSG_SENDER, // recipient - gets wWETH
-        amountOutWWETH, // exact amount out in wWETH
-        maxUSDCIn, // max amount in USDC (will be wrapped to wUSDC)
-        path, // path: wWETH <- wUSDC
-        MSG_SENDER, // payer - permit2 will take from msg.sender
-      ])
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [MSG_SENDER, amountOutWETH, maxUSDCIn, path, MSG_SENDER])
 
       await executeRouter(
         planner,
@@ -271,57 +281,177 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       )
 
       const usdcBalanceAfter = await usdcContract.balanceOf(bob.address)
-      const wWETHBalanceAfter = await wWETHContract.balanceOf(bob.address)
+      const wethBalanceAfter = await wethContract.balanceOf(bob.address)
 
-      // Check we got exactly the wWETH we wanted
-      expect(wWETHBalanceAfter.sub(wWETHBalanceBefore)).to.eq(amountOutWWETH)
+      expect(wethBalanceAfter.sub(wethBalanceBefore)).to.be.gte(amountOutWETH)
 
-      // Check we spent USDC (should be less than max)
       const usdcSpent = usdcBalanceBefore.sub(usdcBalanceAfter)
       expect(usdcSpent).to.be.lt(maxUSDCIn)
       expect(usdcSpent).to.be.gt(0)
 
-      // Check no tokens left on router
       expect(await usdcContract.balanceOf(router.address)).to.equal(0)
       expect(await wUSDCContract.balanceOf(router.address)).to.equal(0)
       expect(await wWETHContract.balanceOf(router.address)).to.equal(0)
       expect(await wethContract.balanceOf(router.address)).to.equal(0)
     })
 
-    it('exactOut multihop wrap: USDC -> wUSDC -> wWETH -> DAI (wrap only in last hop)', async () => {
-      // Reset planner
+    it('exactOut multihop: DAI -> wUSDC -> wWETH -> WETH', async () => {
       planner = new RoutePlanner()
 
-      // Give Alice some DAI for the pool
       const daiWhale = await ethers.getSigner(BASE_DAI_WHALE)
       await daiContract.connect(daiWhale).transfer(alice.address, expandTo18DecimalsBN(100000))
 
-      // Create additional pool: wWETH -> DAI (unwrapped)
       const daiAmount = expandTo18DecimalsBN(50000)
-      const wethAmount = expandTo18DecimalsBN(10)
+      const wusdcAmount = expandTo6DecimalsBN(50000)
 
       await daiContract.connect(alice).approve(INTEGRAL_NFT_POSITION_MANAGER.address, MAX_UINT)
-      await wWETHContract.connect(alice).approve(INTEGRAL_NFT_POSITION_MANAGER.address, MAX_UINT)
-
-      // Wrap some WETH for alice
-      await wethContract.connect(alice).approve(BASE_WA_WETH.address, MAX_UINT)
-      await wWETHContract.connect(alice).deposit(wethAmount, alice.address)
+      await usdcContract.connect(alice).approve(BASE_WM_USDC.address, MAX_UINT)
+      await wUSDCContract.connect(alice).deposit(wusdcAmount, alice.address)
+      await wUSDCContract.connect(alice).approve(INTEGRAL_NFT_POSITION_MANAGER.address, MAX_UINT)
 
       await INTEGRAL_NFT_POSITION_MANAGER.connect(alice).createAndInitializePoolIfNecessary(
         BASE_DAI.address,
-        BASE_WA_WETH.address,
+        BASE_WM_USDC.address,
         ADDRESS_ZERO,
-        encodePriceSqrt(wethAmount, daiAmount),
+        encodePriceSqrt(1, 1),
         '0x'
       )
 
       await INTEGRAL_NFT_POSITION_MANAGER.connect(alice).mint({
         token0: BASE_DAI.address,
-        token1: BASE_WA_WETH.address,
+        token1: BASE_WM_USDC.address,
         deployer: ADDRESS_ZERO,
         tickLower: getMinTick(60),
         tickUpper: getMaxTick(60),
         amount0Desired: daiAmount,
+        amount1Desired: await wUSDCContract.balanceOf(alice.address),
+        amount0Min: 0,
+        amount1Min: 0,
+        recipient: alice.address,
+        deadline: 10000000000000,
+      })
+
+      const amountOutWETH = expandTo18DecimalsBN(0.01)
+      const maxDAIIn = expandTo18DecimalsBN(50)
+
+      // Path: DAI -> [DAI/wUSDC pool] -> wUSDC -> [wUSDC/wWETH pool] -> wWETH -> WETH (unwrap)
+      const path = encodeBoostedPathExactOutput([
+        {
+          tokenOut: BASE_WETH.address,
+          wrapOut: WrapAction.UNWRAP,
+          poolTokenOut: BASE_WA_WETH.address,
+          deployer: ZERO_ADDRESS,
+          poolTokenIn: BASE_WM_USDC.address,
+          wrapIn: WrapAction.NONE,
+          tokenIn: BASE_WM_USDC.address,
+        },
+        {
+          tokenOut: BASE_WM_USDC.address,
+          wrapOut: WrapAction.NONE,
+          poolTokenOut: BASE_WM_USDC.address,
+          deployer: ZERO_ADDRESS,
+          poolTokenIn: BASE_DAI.address,
+          wrapIn: WrapAction.NONE,
+          tokenIn: BASE_DAI.address,
+        },
+      ])
+
+      const daiBalanceBefore = await daiContract.balanceOf(bob.address)
+      const wethBalanceBefore = await wethContract.balanceOf(bob.address)
+
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [MSG_SENDER, amountOutWETH, maxDAIIn, path, MSG_SENDER])
+
+      await executeRouter(
+        planner,
+        bob,
+        router,
+        wethContract,
+        daiContract,
+        usdcContract,
+        undefined,
+        DEX.ALGEBRA_INTEGRAL
+      )
+
+      const daiBalanceAfter = await daiContract.balanceOf(bob.address)
+      const wethBalanceAfter = await wethContract.balanceOf(bob.address)
+
+      expect(wethBalanceAfter.sub(wethBalanceBefore)).to.be.gte(amountOutWETH)
+
+      const daiSpent = daiBalanceBefore.sub(daiBalanceAfter)
+      expect(daiSpent).to.be.lt(maxDAIIn)
+      expect(daiSpent).to.be.gt(0)
+
+      expect(await daiContract.balanceOf(router.address)).to.equal(0)
+      expect(await wUSDCContract.balanceOf(router.address)).to.equal(0)
+      expect(await wWETHContract.balanceOf(router.address)).to.equal(0)
+      expect(await wethContract.balanceOf(router.address)).to.equal(0)
+    })
+
+    it('exactOut multihop: USDC -> spUSDC -> wmUSDC -> waUSDC -> wWETH -> WETH', async () => {
+      planner = new RoutePlanner()
+
+      const waUSDCContract = new ethers.Contract(BASE_WA_USDC.address, ERC4626_ABI, bob)
+      const spUSDCContract = new ethers.Contract(BASE_SPARK_USDC.address, ERC4626_ABI, bob)
+      const wmUSDCContract = new ethers.Contract(BASE_WM_USDC.address, ERC4626_ABI, bob)
+
+      // Approve vaults for wrapping
+      await usdcContract.connect(alice).approve(BASE_WA_USDC.address, MAX_UINT)
+      await usdcContract.connect(alice).approve(BASE_SPARK_USDC.address, MAX_UINT)
+
+      // Wrap tokens for liquidity
+      const spUSDCLiq = expandTo6DecimalsBN(50000)
+      const waUSDCLiq = expandTo6DecimalsBN(50000)
+      const wWETHLiq = expandTo18DecimalsBN(10)
+
+      await spUSDCContract.connect(alice).deposit(spUSDCLiq, alice.address)
+      await waUSDCContract.connect(alice).deposit(waUSDCLiq, alice.address)
+      await wmUSDCContract.connect(alice).deposit(waUSDCLiq, alice.address)
+
+      // Approve position manager
+      await spUSDCContract.connect(alice).approve(INTEGRAL_NFT_POSITION_MANAGER.address, MAX_UINT)
+      await waUSDCContract.connect(alice).approve(INTEGRAL_NFT_POSITION_MANAGER.address, MAX_UINT)
+
+      // Create Pool 1: spUSDC / wmUSDC (wmUSDC already has liquidity from beforeEach)
+      await INTEGRAL_NFT_POSITION_MANAGER.connect(alice).createAndInitializePoolIfNecessary(
+        BASE_SPARK_USDC.address < BASE_WM_USDC.address ? BASE_SPARK_USDC.address : BASE_WM_USDC.address,
+        BASE_SPARK_USDC.address < BASE_WM_USDC.address ? BASE_WM_USDC.address : BASE_SPARK_USDC.address,
+        ADDRESS_ZERO,
+        encodePriceSqrt(1, 1),
+        '0x'
+      )
+      await INTEGRAL_NFT_POSITION_MANAGER.connect(alice).mint({
+        token0: BASE_SPARK_USDC.address < BASE_WM_USDC.address ? BASE_SPARK_USDC.address : BASE_WM_USDC.address,
+        token1: BASE_SPARK_USDC.address < BASE_WM_USDC.address ? BASE_WM_USDC.address : BASE_SPARK_USDC.address,
+        deployer: ADDRESS_ZERO,
+        tickLower: getMinTick(60),
+        tickUpper: getMaxTick(60),
+        amount0Desired: expandTo18DecimalsBN(40000),
+        amount1Desired: expandTo18DecimalsBN(40000),
+        amount0Min: 0,
+        amount1Min: 0,
+        recipient: alice.address,
+        deadline: 10000000000000,
+      })
+
+      // Create Pool 2: waUSDC / wWETH
+      await spUSDCContract.connect(alice).deposit(spUSDCLiq, alice.address)
+      await wWETHContract.connect(alice).deposit(wWETHLiq, alice.address)
+
+      await INTEGRAL_NFT_POSITION_MANAGER.connect(alice).createAndInitializePoolIfNecessary(
+        BASE_WA_USDC.address < BASE_WA_WETH.address ? BASE_WA_USDC.address : BASE_WA_WETH.address,
+        BASE_WA_USDC.address < BASE_WA_WETH.address ? BASE_WA_WETH.address : BASE_WA_USDC.address,
+        ADDRESS_ZERO,
+        encodePriceSqrt(10 ** 18, 4200 * 10 ** 6),
+        '0x'
+      )
+
+      await INTEGRAL_NFT_POSITION_MANAGER.connect(alice).mint({
+        token0: BASE_WA_USDC.address < BASE_WA_WETH.address ? BASE_WA_USDC.address : BASE_WA_WETH.address,
+        token1: BASE_WA_USDC.address < BASE_WA_WETH.address ? BASE_WA_WETH.address : BASE_WA_USDC.address,
+        deployer: ADDRESS_ZERO,
+        tickLower: getMinTick(192960),
+        tickUpper: getMaxTick(192840),
+        amount0Desired: await waUSDCContract.balanceOf(alice.address),
         amount1Desired: await wWETHContract.balanceOf(alice.address),
         amount0Min: 0,
         amount1Min: 0,
@@ -329,24 +459,48 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
         deadline: 10000000000000,
       })
 
-      // Multihop exactOut: Want 100 DAI, path: wUSDC -> wWETH -> DAI
-      // Only the last hop (USDC -> wUSDC) should wrap
-      const amountOutDAI = expandTo18DecimalsBN(100)
-      const maxUSDCIn = expandTo6DecimalsBN(100)
+      const amountOutWETH = expandTo18DecimalsBN(0.01)
+      const maxUSDCIn = expandTo6DecimalsBN(50)
 
-      // Path for exactOut: wUSDC -> wWETH -> DAI (encodePathExactOutputIntegral will reverse it)
-      const path = encodePathExactOutputIntegral([BASE_WM_USDC.address, BASE_WA_WETH.address, BASE_DAI.address])
+      // Path: USDC -> spUSDC (wrap) -> wmUSDC -> waUSDC (unwrap wmUSDC, wrap waUSDC) -> wWETH -> WETH (unwrap)
+      //
+      // Hop 1 (first in path): waUSDC/wWETH pool
+      //   - User receives WETH (unwrap from wWETH)
+      //   - Pool gives wWETH, expects waUSDC
+      //   - waUSDC comes from wrapping USDC (which came from unwrap wmUSDC)
+      //
+      // Hop 2 (last in path): spUSDC/wmUSDC pool
+      //   - Output: USDC (unwrap from wmUSDC) -> goes to wrap waUSDC
+      //   - Pool gives wmUSDC, expects spUSDC
+      //   - spUSDC comes from wrapping user's USDC
+
+      const path = encodeBoostedPathExactOutput([
+        // Hop 1: waUSDC/wWETH pool - unwrap wWETH to WETH, wrap USDC to waUSDC
+        {
+          tokenOut: BASE_WETH.address,
+          wrapOut: WrapAction.UNWRAP,
+          poolTokenOut: BASE_WA_WETH.address,
+          deployer: ZERO_ADDRESS,
+          poolTokenIn: BASE_WA_USDC.address,
+          wrapIn: WrapAction.WRAP,
+          tokenIn: BASE_USDC.address,
+        },
+        // Hop 2: spUSDC/wmUSDC pool - unwrap wmUSDC to USDC, wrap USDC to spUSDC
+        {
+          tokenOut: BASE_USDC.address,
+          wrapOut: WrapAction.UNWRAP,
+          poolTokenOut: BASE_WM_USDC.address,
+          deployer: ZERO_ADDRESS,
+          poolTokenIn: BASE_SPARK_USDC.address,
+          wrapIn: WrapAction.WRAP,
+          tokenIn: BASE_USDC.address,
+        },
+      ])
 
       const usdcBalanceBefore = await usdcContract.balanceOf(bob.address)
-      const daiBalanceBefore = await daiContract.balanceOf(bob.address)
+      const wethBalanceBefore = await wethContract.balanceOf(bob.address)
 
-      planner.addCommand(CommandType.INTEGRAL_EXACT_OUT_WRAP_INPUT, [
-        MSG_SENDER, // recipient - gets DAI
-        amountOutDAI, // exact amount out in DAI
-        maxUSDCIn, // max amount in USDC (will be wrapped to wUSDC)
-        path, // path: DAI <- wWETH <- wUSDC
-        MSG_SENDER, // payer
-      ])
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [MSG_SENDER, amountOutWETH, maxUSDCIn, path, MSG_SENDER])
 
       await executeRouter(
         planner,
@@ -360,21 +514,80 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       )
 
       const usdcBalanceAfter = await usdcContract.balanceOf(bob.address)
-      const daiBalanceAfter = await daiContract.balanceOf(bob.address)
+      const wethBalanceAfter = await wethContract.balanceOf(bob.address)
 
-      // Check we got exactly the DAI we wanted
-      expect(daiBalanceAfter.sub(daiBalanceBefore)).to.eq(amountOutDAI)
+      expect(wethBalanceAfter.sub(wethBalanceBefore)).to.be.gte(amountOutWETH)
 
-      // Check we spent USDC
       const usdcSpent = usdcBalanceBefore.sub(usdcBalanceAfter)
       expect(usdcSpent).to.be.lt(maxUSDCIn)
       expect(usdcSpent).to.be.gt(0)
 
-      // Check no tokens left on router
       expect(await usdcContract.balanceOf(router.address)).to.equal(0)
       expect(await wUSDCContract.balanceOf(router.address)).to.equal(0)
+      expect(await waUSDCContract.balanceOf(router.address)).to.equal(0)
+      expect(await spUSDCContract.balanceOf(router.address)).to.equal(0)
       expect(await wWETHContract.balanceOf(router.address)).to.equal(0)
-      expect(await daiContract.balanceOf(router.address)).to.equal(0)
+      expect(await wethContract.balanceOf(router.address)).to.equal(0)
+    })
+
+    it('reverts exactOut with invalid path: wrapOut = WRAP', async () => {
+      const amountOutWETH = expandTo18DecimalsBN(0.01)
+      const maxUSDCIn = expandTo6DecimalsBN(50)
+
+      // Invalid path: wrapOut = WRAP is not valid (pools output vault tokens, not underlying)
+      const invalidPath = encodeSingleBoostedPoolExactOutput(
+        BASE_WETH.address,
+        WrapAction.WRAP, // Invalid: WRAP on output
+        BASE_WA_WETH.address,
+        ZERO_ADDRESS,
+        BASE_WM_USDC.address,
+        WrapAction.WRAP,
+        BASE_USDC.address
+      )
+
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
+        MSG_SENDER,
+        amountOutWETH,
+        maxUSDCIn,
+        invalidPath,
+        MSG_SENDER,
+      ])
+
+      const { commands, inputs } = planner
+
+      await expect(
+        router.connect(bob)['execute(bytes,bytes[],uint256)'](commands, inputs, DEADLINE)
+      ).to.be.revertedWithCustomError(router, 'IntegralInvalidBoostedPath')
+    })
+
+    it('reverts exactOut with invalid path: wrapIn = UNWRAP', async () => {
+      const amountOutWETH = expandTo18DecimalsBN(0.01)
+      const maxUSDCIn = expandTo6DecimalsBN(50)
+
+      // Invalid path: wrapIn = UNWRAP is not valid (pools expect vault tokens, not underlying)
+      const invalidPath = encodeSingleBoostedPoolExactOutput(
+        BASE_WETH.address,
+        WrapAction.UNWRAP,
+        BASE_WA_WETH.address,
+        ZERO_ADDRESS,
+        BASE_WM_USDC.address,
+        WrapAction.UNWRAP, // Invalid: UNWRAP on input
+        BASE_USDC.address
+      )
+
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
+        MSG_SENDER,
+        amountOutWETH,
+        maxUSDCIn,
+        invalidPath,
+        MSG_SENDER,
+      ])
+
+      const { commands, inputs } = planner
+
+      await expect(
+        router.connect(bob)['execute(bytes,bytes[],uint256)'](commands, inputs, DEADLINE)
+      ).to.be.revertedWithCustomError(router, 'IntegralInvalidBoostedPath')
     })
   })
 
@@ -602,7 +815,6 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       ])
 
       const positionBefore = await INTEGRAL_NFT_POSITION_MANAGER.connect(bob).positions(tokenId)
-
       await executeRouter(
         planner,
         bob,
