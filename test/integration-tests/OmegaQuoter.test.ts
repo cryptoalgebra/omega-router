@@ -34,8 +34,7 @@ import {
 } from './shared/constants'
 import { expandTo18DecimalsBN, expandTo6DecimalsBN } from './shared/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { CommandType } from './shared/planner'
-import { defaultAbiCoder } from 'ethers/lib/utils'
+import { QuoterPlanner, QuoterResultParser } from './shared/quoterPlanner'
 import hre from 'hardhat'
 import {
   encodePathExactInput,
@@ -84,13 +83,14 @@ describe('OmegaQuoter Tests:', () => {
         const amountIn = expandTo18DecimalsBN(100)
         const path = [MAINNET_DAI.address, MAINNET_WETH.address]
 
-        const commands = '0x' + CommandType.V2_SWAP_EXACT_IN.toString(16).padStart(2, '0')
-        const inputs = [defaultAbiCoder.encode(['uint256', 'address[]'], [amountIn, path])]
+        const planner = new QuoterPlanner()
+        planner.addV2SwapExactIn(amountIn, path)
+        const { commands, inputs } = planner.finalize()
 
         const outputs = await quoter.callStatic.execute(commands, inputs)
         expect(outputs.length).to.equal(1)
 
-        const [amountOut] = defaultAbiCoder.decode(['uint256'], outputs[0])
+        const { amountOut } = QuoterResultParser.parseV2SwapResult(outputs[0])
         expect(amountOut).to.be.gt(expandTo18DecimalsBN(0.02))
       })
 
@@ -98,13 +98,14 @@ describe('OmegaQuoter Tests:', () => {
         const amountOut = expandTo18DecimalsBN(1)
         const path = [MAINNET_DAI.address, MAINNET_WETH.address]
 
-        const commands = '0x' + CommandType.V2_SWAP_EXACT_OUT.toString(16).padStart(2, '0')
-        const inputs = [defaultAbiCoder.encode(['uint256', 'address[]'], [amountOut, path])]
+        const planner = new QuoterPlanner()
+        planner.addV2SwapExactOut(amountOut, path)
+        const { commands, inputs } = planner.finalize()
 
         const outputs = await quoter.callStatic.execute(commands, inputs)
         expect(outputs.length).to.equal(1)
 
-        const [amountIn] = defaultAbiCoder.decode(['uint256'], outputs[0])
+        const { amountIn } = QuoterResultParser.parseV2ExactOutResult(outputs[0])
         expect(amountIn).to.be.gt(expandTo18DecimalsBN(3000))
         expect(amountIn).to.be.lt(expandTo18DecimalsBN(6000))
       })
@@ -113,13 +114,14 @@ describe('OmegaQuoter Tests:', () => {
         const amountIn = expandTo18DecimalsBN(100)
         const path = [MAINNET_DAI.address, MAINNET_USDC.address, MAINNET_WETH.address]
 
-        const commands = '0x' + CommandType.V2_SWAP_EXACT_IN.toString(16).padStart(2, '0')
-        const inputs = [defaultAbiCoder.encode(['uint256', 'address[]'], [amountIn, path])]
+        const planner = new QuoterPlanner()
+        planner.addV2SwapExactIn(amountIn, path)
+        const { commands, inputs } = planner.finalize()
 
         const outputs = await quoter.callStatic.execute(commands, inputs)
         expect(outputs.length).to.equal(1)
 
-        const [amountOut] = defaultAbiCoder.decode(['uint256'], outputs[0])
+        const { amountOut } = QuoterResultParser.parseV2SwapResult(outputs[0])
         expect(amountOut).to.be.gt(expandTo18DecimalsBN(0.02))
       })
     })
@@ -129,16 +131,14 @@ describe('OmegaQuoter Tests:', () => {
         const amountIn = expandTo18DecimalsBN(100)
         const path = encodePathExactInput([MAINNET_DAI.address, MAINNET_WETH.address])
 
-        const commands = '0x' + CommandType.UNISWAP_V3_SWAP_EXACT_IN.toString(16).padStart(2, '0')
-        const inputs = [defaultAbiCoder.encode(['uint256', 'bytes'], [amountIn, path])]
+        const planner = new QuoterPlanner()
+        planner.addV3SwapExactIn(amountIn, path)
+        const { commands, inputs } = planner.finalize()
 
         const outputs = await quoter.callStatic.execute(commands, inputs)
         expect(outputs.length).to.equal(1)
 
-        const [amountOut, sqrtPriceX96AfterList, gasEstimate] = defaultAbiCoder.decode(
-          ['uint256', 'uint160[]', 'uint256'],
-          outputs[0]
-        )
+        const { amountOut, sqrtPriceX96AfterList, gasEstimate } = QuoterResultParser.parseV3SwapResult(outputs[0])
         expect(amountOut).to.be.gt(expandTo18DecimalsBN(0.02))
         expect(sqrtPriceX96AfterList.length).to.equal(1)
         expect(gasEstimate).to.be.gt(0)
@@ -148,16 +148,14 @@ describe('OmegaQuoter Tests:', () => {
         const amountOut = expandTo18DecimalsBN(1)
         const path = encodePathExactOutput([MAINNET_DAI.address, MAINNET_WETH.address])
 
-        const commands = '0x' + CommandType.UNISWAP_V3_SWAP_EXACT_OUT.toString(16).padStart(2, '0')
-        const inputs = [defaultAbiCoder.encode(['uint256', 'bytes'], [amountOut, path])]
+        const planner = new QuoterPlanner()
+        planner.addV3SwapExactOut(amountOut, path)
+        const { commands, inputs } = planner.finalize()
 
         const outputs = await quoter.callStatic.execute(commands, inputs)
         expect(outputs.length).to.equal(1)
 
-        const [amountIn, sqrtPriceX96AfterList, gasEstimate] = defaultAbiCoder.decode(
-          ['uint256', 'uint160[]', 'uint256'],
-          outputs[0]
-        )
+        const { amountIn, sqrtPriceX96AfterList, gasEstimate } = QuoterResultParser.parseV3ExactOutResult(outputs[0])
         expect(amountIn).to.be.gt(expandTo18DecimalsBN(3000))
         expect(amountIn).to.be.lt(expandTo18DecimalsBN(6000))
         expect(sqrtPriceX96AfterList.length).to.equal(1)
@@ -168,18 +166,16 @@ describe('OmegaQuoter Tests:', () => {
         const amountIn = expandTo18DecimalsBN(100)
         const path = encodePathExactInput([MAINNET_DAI.address, MAINNET_USDC.address, MAINNET_WETH.address])
 
-        const commands = '0x' + CommandType.UNISWAP_V3_SWAP_EXACT_IN.toString(16).padStart(2, '0')
-        const inputs = [defaultAbiCoder.encode(['uint256', 'bytes'], [amountIn, path])]
+        const planner = new QuoterPlanner()
+        planner.addV3SwapExactIn(amountIn, path)
+        const { commands, inputs } = planner.finalize()
 
         const outputs = await quoter.callStatic.execute(commands, inputs)
         expect(outputs.length).to.equal(1)
 
-        const [amountOut, sqrtPriceX96AfterList, gasEstimate] = defaultAbiCoder.decode(
-          ['uint256', 'uint160[]', 'uint256'],
-          outputs[0]
-        )
+        const { amountOut, sqrtPriceX96AfterList, gasEstimate } = QuoterResultParser.parseV3SwapResult(outputs[0])
         expect(amountOut).to.be.gt(expandTo18DecimalsBN(0.02))
-        expect(sqrtPriceX96AfterList.length).to.equal(2) // 2 pools
+        expect(sqrtPriceX96AfterList.length).to.equal(2) /* Line 182 omitted */
         expect(gasEstimate).to.be.gt(0)
       })
     })
@@ -195,13 +191,14 @@ describe('OmegaQuoter Tests:', () => {
         const waUsdcContract = new ethers.Contract(MAINNET_WA_USDC.address, ERC4626_ABI, bob)
         const amountIn = expandTo6DecimalsBN(100)
 
-        const commands = '0x' + CommandType.ERC4626_WRAP.toString(16).padStart(2, '0')
-        const inputs = [defaultAbiCoder.encode(['address', 'uint256'], [MAINNET_WA_USDC.address, amountIn])]
+        const planner = new QuoterPlanner()
+        planner.addERC4626Wrap(MAINNET_WA_USDC.address, amountIn)
+        const { commands, inputs } = planner.finalize()
 
         const outputs = await quoter.callStatic.execute(commands, inputs)
         expect(outputs.length).to.equal(1)
 
-        const [amountOut] = defaultAbiCoder.decode(['uint256'], outputs[0])
+        const { amountOut } = QuoterResultParser.parseERC4626Result(outputs[0])
         const expectedAmountOut = await waUsdcContract.previewDeposit(amountIn)
         expect(amountOut).to.equal(expectedAmountOut)
       })
@@ -210,13 +207,14 @@ describe('OmegaQuoter Tests:', () => {
         const waUsdcContract = new ethers.Contract(MAINNET_WA_USDC.address, ERC4626_ABI, bob)
         const amountIn = expandTo6DecimalsBN(100)
 
-        const commands = '0x' + CommandType.ERC4626_UNWRAP.toString(16).padStart(2, '0')
-        const inputs = [defaultAbiCoder.encode(['address', 'uint256'], [MAINNET_WA_USDC.address, amountIn])]
+        const planner = new QuoterPlanner()
+        planner.addERC4626Unwrap(MAINNET_WA_USDC.address, amountIn)
+        const { commands, inputs } = planner.finalize()
 
         const outputs = await quoter.callStatic.execute(commands, inputs)
         expect(outputs.length).to.equal(1)
 
-        const [amountOut] = defaultAbiCoder.decode(['uint256'], outputs[0])
+        const { amountOut } = QuoterResultParser.parseERC4626Result(outputs[0])
         const expectedAmountOut = await waUsdcContract.previewRedeem(amountIn)
         expect(amountOut).to.equal(expectedAmountOut)
       })
@@ -231,22 +229,18 @@ describe('OmegaQuoter Tests:', () => {
         // Second swap: WETH -> USDC on V2, using output from first swap
         const pathV2 = [MAINNET_WETH.address, MAINNET_USDC.address]
 
-        const commands =
-          '0x' +
-          CommandType.UNISWAP_V3_SWAP_EXACT_IN.toString(16).padStart(2, '0') +
-          CommandType.V2_SWAP_EXACT_IN.toString(16).padStart(2, '0')
-        const inputs = [
-          defaultAbiCoder.encode(['uint256', 'bytes'], [amountIn, pathV3]),
-          defaultAbiCoder.encode(['uint256', 'address[]'], [CONTRACT_BALANCE, pathV2]),
-        ]
+        const planner = new QuoterPlanner()
+        planner.addV3SwapExactIn(amountIn, pathV3)
+        planner.addV2SwapExactIn(CONTRACT_BALANCE, pathV2)
+        const { commands, inputs } = planner.finalize()
 
         const outputs = await quoter.callStatic.execute(commands, inputs)
         expect(outputs.length).to.equal(2)
 
-        const [amountOutV3] = defaultAbiCoder.decode(['uint256', 'uint160[]', 'uint256'], outputs[0])
+        const { amountOut: amountOutV3 } = QuoterResultParser.parseV3SwapResult(outputs[0])
         expect(amountOutV3).to.be.gt(expandTo18DecimalsBN(0.02))
 
-        const [amountOutV2] = defaultAbiCoder.decode(['uint256'], outputs[1])
+        const { amountOut: amountOutV2 } = QuoterResultParser.parseV2SwapResult(outputs[1])
         expect(amountOutV2).to.be.gt(expandTo6DecimalsBN(80))
       })
 
@@ -258,22 +252,18 @@ describe('OmegaQuoter Tests:', () => {
         // Second swap: USDC -> WETH on V3, using output from first swap
         const pathV3 = encodePathExactInput([MAINNET_USDC.address, MAINNET_WETH.address])
 
-        const commands =
-          '0x' +
-          CommandType.V2_SWAP_EXACT_IN.toString(16).padStart(2, '0') +
-          CommandType.UNISWAP_V3_SWAP_EXACT_IN.toString(16).padStart(2, '0')
-        const inputs = [
-          defaultAbiCoder.encode(['uint256', 'address[]'], [amountIn, pathV2]),
-          defaultAbiCoder.encode(['uint256', 'bytes'], [CONTRACT_BALANCE, pathV3]),
-        ]
+        const planner = new QuoterPlanner()
+        planner.addV2SwapExactIn(amountIn, pathV2)
+        planner.addV3SwapExactIn(CONTRACT_BALANCE, pathV3)
+        const { commands, inputs } = planner.finalize()
 
         const outputs = await quoter.callStatic.execute(commands, inputs)
         expect(outputs.length).to.equal(2)
 
-        const [amountOutV2] = defaultAbiCoder.decode(['uint256'], outputs[0])
+        const { amountOut: amountOutV2 } = QuoterResultParser.parseV2SwapResult(outputs[0])
         expect(amountOutV2).to.be.gt(expandTo6DecimalsBN(95))
 
-        const [amountOutV3] = defaultAbiCoder.decode(['uint256', 'uint160[]', 'uint256'], outputs[1])
+        const { amountOut: amountOutV3 } = QuoterResultParser.parseV3SwapResult(outputs[1])
         expect(amountOutV3).to.be.gt(expandTo18DecimalsBN(0.02))
       })
     })
@@ -290,16 +280,14 @@ describe('OmegaQuoter Tests:', () => {
       const amountIn = expandTo6DecimalsBN(100)
       const path = encodePathExactInputIntegral([BASE_USDC.address, BASE_WETH.address])
 
-      const commands = '0x' + CommandType.INTEGRAL_SWAP_EXACT_IN.toString(16).padStart(2, '0')
-      const inputs = [defaultAbiCoder.encode(['uint256', 'bytes'], [amountIn, path])]
+      const planner = new QuoterPlanner()
+      planner.addIntegralSwapExactIn(amountIn, path)
+      const { commands, inputs } = planner.finalize()
 
       const outputs = await quoter.callStatic.execute(commands, inputs)
       expect(outputs.length).to.equal(1)
 
-      const [amountOut, sqrtPriceX96AfterList, gasEstimate] = defaultAbiCoder.decode(
-        ['uint256', 'uint160[]', 'uint256'],
-        outputs[0]
-      )
+      const { amountOut, sqrtPriceX96AfterList, gasEstimate } = QuoterResultParser.parseIntegralSwapResult(outputs[0])
       expect(amountOut).to.be.gt(expandTo18DecimalsBN(0.02))
       expect(sqrtPriceX96AfterList.length).to.equal(1)
       expect(gasEstimate).to.be.gt(0)
@@ -307,18 +295,24 @@ describe('OmegaQuoter Tests:', () => {
 
     it('quotes exactOut swap: USDC -> WETH', async () => {
       const amountOut = expandTo18DecimalsBN(0.01)
-      const path = encodePathExactOutputIntegral([BASE_USDC.address, BASE_WETH.address])
+      const path = encodeSingleBoostedPoolExactOutput(
+        BASE_WETH.address,
+        WrapAction.NONE,
+        BASE_WETH.address,
+        ADDRESS_ZERO,
+        BASE_USDC.address,
+        WrapAction.NONE,
+        BASE_USDC.address
+      )
 
-      const commands = '0x' + CommandType.INTEGRAL_SWAP_EXACT_OUT.toString(16).padStart(2, '0')
-      const inputs = [defaultAbiCoder.encode(['uint256', 'bytes'], [amountOut, path])]
+      const planner = new QuoterPlanner()
+      planner.addIntegralSwapExactOut(amountOut, path)
+      const { commands, inputs } = planner.finalize()
 
       const outputs = await quoter.callStatic.execute(commands, inputs)
       expect(outputs.length).to.equal(1)
 
-      const [amountIn, sqrtPriceX96AfterList, gasEstimate] = defaultAbiCoder.decode(
-        ['uint256', 'uint160[]', 'uint256'],
-        outputs[0]
-      )
+      const { amountIn, sqrtPriceX96AfterList, gasEstimate } = QuoterResultParser.parseV3ExactOutResult(outputs[0])
       expect(amountIn).to.be.gt(expandTo6DecimalsBN(30))
       expect(amountIn).to.be.lt(expandTo6DecimalsBN(60))
       expect(sqrtPriceX96AfterList.length).to.equal(1)
@@ -329,16 +323,14 @@ describe('OmegaQuoter Tests:', () => {
       const amountIn = expandTo18DecimalsBN(100)
       const path = encodePathExactInputIntegral([BASE_DAI.address, BASE_USDC.address, BASE_WETH.address])
 
-      const commands = '0x' + CommandType.INTEGRAL_SWAP_EXACT_IN.toString(16).padStart(2, '0')
-      const inputs = [defaultAbiCoder.encode(['uint256', 'bytes'], [amountIn, path])]
+      const planner = new QuoterPlanner()
+      planner.addIntegralSwapExactIn(amountIn, path)
+      const { commands, inputs } = planner.finalize()
 
       const outputs = await quoter.callStatic.execute(commands, inputs)
       expect(outputs.length).to.equal(1)
 
-      const [amountOut, sqrtPriceX96AfterList, gasEstimate] = defaultAbiCoder.decode(
-        ['uint256', 'uint160[]', 'uint256'],
-        outputs[0]
-      )
+      const { amountOut, sqrtPriceX96AfterList, gasEstimate } = QuoterResultParser.parseIntegralSwapResult(outputs[0])
       expect(amountOut).to.be.gt(expandTo18DecimalsBN(0.02))
       expect(sqrtPriceX96AfterList.length).to.equal(2) // 2 pools
       expect(gasEstimate).to.be.gt(0)
@@ -352,22 +344,18 @@ describe('OmegaQuoter Tests:', () => {
       const pathFirst = encodePathExactInputIntegral([BASE_DAI.address, BASE_USDC.address])
       const pathSecond = encodePathExactInputIntegral([BASE_USDC.address, BASE_WETH.address])
 
-      const commands =
-        '0x' +
-        CommandType.INTEGRAL_SWAP_EXACT_IN.toString(16).padStart(2, '0') +
-        CommandType.INTEGRAL_SWAP_EXACT_IN.toString(16).padStart(2, '0')
-      const inputs = [
-        defaultAbiCoder.encode(['uint256', 'bytes'], [amountIn, pathFirst]),
-        defaultAbiCoder.encode(['uint256', 'bytes'], [CONTRACT_BALANCE, pathSecond]),
-      ]
+      const planner = new QuoterPlanner()
+      planner.addIntegralSwapExactIn(amountIn, pathFirst)
+      planner.addIntegralSwapExactIn(CONTRACT_BALANCE, pathSecond)
+      const { commands, inputs } = planner.finalize()
 
       const outputs = await quoter.callStatic.execute(commands, inputs)
       expect(outputs.length).to.equal(2)
 
-      const [amountOutFirst] = defaultAbiCoder.decode(['uint256', 'uint160[]', 'uint256'], outputs[0])
+      const { amountOut: amountOutFirst } = QuoterResultParser.parseIntegralSwapResult(outputs[0])
       expect(amountOutFirst).to.be.gt(expandTo6DecimalsBN(95))
 
-      const [amountOutSecond] = defaultAbiCoder.decode(['uint256', 'uint160[]', 'uint256'], outputs[1])
+      const { amountOut: amountOutSecond } = QuoterResultParser.parseIntegralSwapResult(outputs[1])
       expect(amountOutSecond).to.be.gt(expandTo18DecimalsBN(0.02))
     })
 
@@ -451,16 +439,14 @@ describe('OmegaQuoter Tests:', () => {
           BASE_USDC.address
         )
 
-        const commands = '0x' + CommandType.INTEGRAL_SWAP_EXACT_OUT.toString(16).padStart(2, '0')
-        const inputs = [defaultAbiCoder.encode(['uint256', 'bytes'], [amountOut, path])]
+        const planner = new QuoterPlanner()
+        planner.addIntegralSwapExactOut(amountOut, path)
+        const { commands, inputs } = planner.finalize()
 
         const outputs = await quoter.callStatic.execute(commands, inputs)
         expect(outputs.length).to.equal(1)
 
-        const [amountIn, sqrtPriceX96AfterList, gasEstimate] = defaultAbiCoder.decode(
-          ['uint256', 'uint160[]', 'uint256'],
-          outputs[0]
-        )
+        const { amountIn, sqrtPriceX96AfterList, gasEstimate } = QuoterResultParser.parseV3ExactOutResult(outputs[0])
         expect(amountIn).to.be.gt(expandTo6DecimalsBN(30))
         expect(amountIn).to.be.lt(expandTo6DecimalsBN(60))
         expect(sqrtPriceX96AfterList.length).to.equal(1)
