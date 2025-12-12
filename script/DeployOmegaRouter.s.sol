@@ -6,6 +6,7 @@ import 'forge-std/Script.sol';
 import {RouterParameters} from 'contracts/types/RouterParameters.sol';
 import {UnsupportedProtocol} from 'contracts/deploy/UnsupportedProtocol.sol';
 import {OmegaRouter} from 'contracts/OmegaRouter.sol';
+import {OmegaQuoter} from 'contracts/lens/OmegaQuoter.sol';
 
 bytes32 constant SALT = bytes32(uint256(0x00000000000000000000000000000000000000005eb67581652632000a6cbedf));
 
@@ -21,7 +22,7 @@ abstract contract DeployOmegaRouter is Script {
     // set values for params and unsupported
     function setUp() public virtual;
 
-    function run() external returns (OmegaRouter router) {
+    function run() external returns (OmegaRouter router, OmegaQuoter quoter) {
         vm.startBroadcast();
 
         // deploy permit2 if it isnt yet deployed
@@ -50,6 +51,10 @@ abstract contract DeployOmegaRouter is Script {
 
         router = new OmegaRouter(params);
         console2.log('Omega Router Deployed:', address(router));
+
+        quoter = new OmegaQuoter(params);
+        console2.log('Omega Quoter Deployed:', address(quoter));
+
         vm.stopBroadcast();
     }
 
