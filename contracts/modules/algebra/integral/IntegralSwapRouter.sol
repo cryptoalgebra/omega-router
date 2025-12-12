@@ -92,7 +92,7 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
                 if (wrapIn == WrapAction.WRAP) {
                     IERC20(tokenIn).forceApprove(poolTokenIn, nextSwapAmount);
                     IERC4626(poolTokenIn).mint(amountToPay, msg.sender);
-                } else if (wrapIn == WrapAction.UNWRAP) {   
+                } else if (wrapIn == WrapAction.UNWRAP) {
                     IERC4626(tokenIn).redeem(nextSwapAmount, msg.sender, address(this));
                 }
                 // If wrapIn == NONE, tokens already sent directly to pool
@@ -112,7 +112,7 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
                     // Unwrap - payer sends vault tokens, router unwraps and sends underlying to the pool
                     amountFromPayer = IERC4626(tokenIn).previewWithdraw(amountToPay);
                     if (amountFromPayer > MaxInputAmount.get()) revert IntegralTooMuchRequested();
-                    
+
                     payOrPermit2Transfer(tokenIn, payer, address(this), amountFromPayer);
                     IERC4626(tokenIn).redeem(amountFromPayer, msg.sender, address(this));
                 } else {
@@ -220,13 +220,13 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
             address vaultToken;
             uint256 amountOut = uint256(-amount);
             // tokenOut | wrapOut | poolTokenOut | deployer | poolTokenIn | wrapIn | tokenIn
-            (vaultToken, wrapOut, tokenOut, deployer, tokenIn, ,) = path.decodeFirstBoostedPool();
-            if (wrapOut == WrapAction.UNWRAP){
+            (vaultToken, wrapOut, tokenOut, deployer, tokenIn,,) = path.decodeFirstBoostedPool();
+            if (wrapOut == WrapAction.UNWRAP) {
                 amount = -(IERC4626(tokenOut).previewWithdraw(amountOut)).toInt256();
-                recipient = address(this); 
+                recipient = address(this);
             } else if (wrapOut == WrapAction.WRAP) {
-                amount = -(IERC4626(vaultToken).previewMint(amountOut)).toInt256(); 
-                recipient = address(this); 
+                amount = -(IERC4626(vaultToken).previewMint(amountOut)).toInt256();
+                recipient = address(this);
             }
         }
 
