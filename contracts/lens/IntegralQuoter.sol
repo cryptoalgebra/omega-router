@@ -112,14 +112,23 @@ abstract contract IntegralQuoter is AlgebraImmutables, IAlgebraSwapCallback {
         uint256 currentAmountOut = amountOut;
 
         while (true) {
-            (, WrapAction wrapOut, address poolTokenOut, address deployer, address poolTokenIn, WrapAction wrapIn,) =
-                path.decodeFirstBoostedPool();
+            (
+                address tokenOut,
+                WrapAction wrapOut,
+                address poolTokenOut,
+                address deployer,
+                address poolTokenIn,
+                WrapAction wrapIn,
+                address tokenIn
+            ) = path.decodeFirstBoostedPool();
 
             bool hasMultiplePools = path.hasMultipleBoostedPools();
 
             uint256 poolAmountOut = currentAmountOut;
             if (wrapOut == WrapAction.UNWRAP) {
                 poolAmountOut = IERC4626(poolTokenOut).previewWithdraw(currentAmountOut);
+            } else if (wrapOut == WrapAction.WRAP) {
+                poolAmountOut = IERC4626(tokenOut).previewMint(currentAmountOut);
             }
 
             uint256 gasBefore = gasleft();
@@ -130,8 +139,12 @@ abstract contract IntegralQuoter is AlgebraImmutables, IAlgebraSwapCallback {
             sqrtPriceX96AfterList[i] = sqrtPriceX96After;
             i++;
 
-            uint256 nextAmount =
-                wrapIn == WrapAction.WRAP ? IERC4626(poolTokenIn).previewMint(poolAmountIn) : poolAmountIn;
+            uint256 nextAmount = poolAmountIn;
+            if (wrapIn == WrapAction.WRAP) {
+                nextAmount = IERC4626(poolTokenIn).previewMint(poolAmountIn);
+            } else if (wrapIn == WrapAction.UNWRAP) {
+                nextAmount = IERC4626(tokenIn).previewWithdraw(poolAmountIn);
+            }
 
             if (hasMultiplePools) {
                 currentAmountOut = nextAmount;
