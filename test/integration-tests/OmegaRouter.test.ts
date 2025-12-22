@@ -130,18 +130,102 @@ describe('OmegaRouter', () => {
       )
     })
   })
-})
 
-describe('OmegaRouter', () => {
-  describe('partial fills', async () => {
+  describe('partial fills', () => {
     let planner: RoutePlanner
 
     beforeEach(() => {
       planner = new RoutePlanner()
     })
 
-    // TODO need to rewrite these tests for non-NFT commands
-    it('reverts if no commands are allowed to revert')
-    it('does not revert if failed command allowed to fail')
+    it('does not revert if failed command allowed to fail - Partial Fill', async () => {
+      
+      const subPlanner = new RoutePlanner()
+      const hugeAmount = expandTo18DecimalsBN(1_000_000_000) 
+
+      
+      subPlanner.addCommand(CommandType.V2_SWAP_EXACT_IN, [
+        alice.address,
+        hugeAmount,
+        1, 
+        [MAINNET_DAI.address, MAINNET_WETH.address],
+        SOURCE_MSG_SENDER,
+      ])
+
+      
+      planner.addSubPlan(subPlanner)
+
+      
+      const wrapAmount = expandTo18DecimalsBN(1)
+      planner.addCommand(CommandType.WRAP_ETH, [router.address, wrapAmount])
+
+      const { commands, inputs } = planner
+
+      
+      const balanceBefore = await wethContract.balanceOf(router.address)
+
+      
+      await expect(
+        router['execute(bytes,bytes[],uint256)'](commands, inputs, DEADLINE, { value: wrapAmount })
+      ).to.not.be.reverted
+
+      
+      const balanceAfter = await wethContract.balanceOf(router.address)
+      expect(balanceAfter.sub(balanceBefore)).to.eq(wrapAmount)
+    })
+    it('SubPlan reverts atomically: changes from successful commands inside a failing subplan are undone', async () => {
+      
+      const amount = expandTo18DecimalsBN(10)
+      await daiContract.connect(alice).transfer(router.address, amount)
+
+      const initialRouterBalance = await daiContract.balanceOf(router.address)
+      const initialAliceBalance = await daiContract.balanceOf(alice.address)
+
+      
+      const subPlanner = new RoutePlanner()
+
+    
+      subPlanner.addCommand(CommandType.TRANSFER, [
+        MAINNET_DAI.address,
+        alice.address,
+        amount
+      ])
+
+      
+      const hugeAmount = expandTo18DecimalsBN(1_000_000_000)
+      subPlanner.addCommand(CommandType.V2_SWAP_EXACT_IN, [
+        alice.address,
+        hugeAmount,
+        1,
+        [MAINNET_DAI.address, MAINNET_WETH.address],
+        SOURCE_MSG_SENDER,
+      ])
+
+      
+      planner.addSubPlan(subPlanner)
+
+      
+      const wrapAmount = expandTo18DecimalsBN(1)
+      planner.addCommand(CommandType.WRAP_ETH, [router.address, wrapAmount])
+
+      const { commands, inputs } = planner
+
+      
+      await expect(
+        router.connect(alice)['execute(bytes,bytes[],uint256)'](commands, inputs, DEADLINE, { value: wrapAmount })
+      ).to.not.be.reverted
+
+     
+      const finalRouterBalance = await daiContract.balanceOf(router.address)
+      const finalAliceBalance = await daiContract.balanceOf(alice.address)
+
+      
+      expect(finalRouterBalance).to.eq(initialRouterBalance)
+      expect(finalAliceBalance).to.eq(initialAliceBalance)
+
+      
+      const wethBalance = await wethContract.balanceOf(router.address)
+      expect(wethBalance).to.be.gte(wrapAmount)
+    })
   })
 })
