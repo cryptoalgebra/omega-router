@@ -37,6 +37,14 @@ library V3Path {
         tokenA = path.toAddress();
     }
 
+    /// @notice Returns the number of pools in the path
+    /// @param path The encoded swap path
+    /// @return The number of pools in the path
+    function numPools(bytes calldata path) internal pure returns (uint256) {
+        // Ignore the first token address. From then on every fee and token offset indicates a pool.
+        return ((path.length - Constants.ADDR_SIZE) / Constants.NEXT_V3_POOL_OFFSET);
+    }
+
     /// @notice Skips a token + fee element
     /// @param path The swap path
     function skipToken(bytes calldata path) internal pure returns (bytes calldata) {

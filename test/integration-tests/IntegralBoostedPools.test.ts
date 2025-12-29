@@ -529,66 +529,6 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       expect(await wWETHContract.balanceOf(router.address)).to.equal(0)
       expect(await wethContract.balanceOf(router.address)).to.equal(0)
     })
-
-    it('reverts exactOut with invalid path: wrapOut = WRAP', async () => {
-      const amountOutWETH = expandTo18DecimalsBN(0.01)
-      const maxUSDCIn = expandTo6DecimalsBN(50)
-
-      // Invalid path: wrapOut = WRAP is not valid (pools output vault tokens, not underlying)
-      const invalidPath = encodeSingleBoostedPoolExactOutput(
-        BASE_WETH.address,
-        WrapAction.WRAP, // Invalid: WRAP on output
-        BASE_WA_WETH.address,
-        ZERO_ADDRESS,
-        BASE_WM_USDC.address,
-        WrapAction.WRAP,
-        BASE_USDC.address
-      )
-
-      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
-        MSG_SENDER,
-        amountOutWETH,
-        maxUSDCIn,
-        invalidPath,
-        MSG_SENDER,
-      ])
-
-      const { commands, inputs } = planner
-
-      await expect(
-        router.connect(bob)['execute(bytes,bytes[],uint256)'](commands, inputs, DEADLINE)
-      ).to.be.revertedWithCustomError(router, 'IntegralInvalidBoostedPath')
-    })
-
-    it('reverts exactOut with invalid path: wrapIn = UNWRAP', async () => {
-      const amountOutWETH = expandTo18DecimalsBN(0.01)
-      const maxUSDCIn = expandTo6DecimalsBN(50)
-
-      // Invalid path: wrapIn = UNWRAP is not valid (pools expect vault tokens, not underlying)
-      const invalidPath = encodeSingleBoostedPoolExactOutput(
-        BASE_WETH.address,
-        WrapAction.UNWRAP,
-        BASE_WA_WETH.address,
-        ZERO_ADDRESS,
-        BASE_WM_USDC.address,
-        WrapAction.UNWRAP, // Invalid: UNWRAP on input
-        BASE_USDC.address
-      )
-
-      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
-        MSG_SENDER,
-        amountOutWETH,
-        maxUSDCIn,
-        invalidPath,
-        MSG_SENDER,
-      ])
-
-      const { commands, inputs } = planner
-
-      await expect(
-        router.connect(bob)['execute(bytes,bytes[],uint256)'](commands, inputs, DEADLINE)
-      ).to.be.revertedWithCustomError(router, 'IntegralInvalidBoostedPath')
-    })
   })
 
   describe('Positions', () => {

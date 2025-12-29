@@ -3,34 +3,34 @@
 exports[`Integral Boosted Pools Gas Tests exactIn swaps gas: exactIn USDC wrap -> swap -> unwrap WETH 1`] = `
 Object {
   "calldataByteLength": 1220,
-  "gasUsed": 989734,
+  "gasUsed": 989747,
 }
 `;
 
 exports[`Integral Boosted Pools Gas Tests exactIn swaps gas: exactIn WETH wrap -> swap -> unwrap USDC 1`] = `
 Object {
   "calldataByteLength": 1092,
-  "gasUsed": 978734,
+  "gasUsed": 978747,
 }
 `;
 
 exports[`Integral Boosted Pools Gas Tests exactOut swaps gas: exactOut multihop DAI -> wUSDC -> wWETH -> WETH 1`] = `
 Object {
   "calldataByteLength": 644,
-  "gasUsed": 615074,
+  "gasUsed": 615194,
 }
 `;
 
 exports[`Integral Boosted Pools Gas Tests exactOut swaps gas: exactOut multihop with vault transition 1`] = `
 Object {
   "calldataByteLength": 644,
-  "gasUsed": 1672871,
+  "gasUsed": 1672839,
 }
 `;
 
 exports[`Integral Boosted Pools Gas Tests exactOut swaps gas: exactOut single-hop wrap + unwrap 1`] = `
 Object {
   "calldataByteLength": 580,
-  "gasUsed": 1122156,
+  "gasUsed": 1122128,
 }
 `;

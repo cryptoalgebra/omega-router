@@ -38,6 +38,14 @@ library IntegralBoostedPath {
         return path[:Constants.INTEGRAL_BOOSTED_POOL_OFFSET];
     }
 
+    /// @notice Returns the number of pools in the path
+    /// @param path The encoded swap path
+    /// @return The number of pools in the path
+    function boostedNumPools(bytes calldata path) internal pure returns (uint256) {
+        // Ignore the first token address. From then on every fee and token offset indicates a pool.
+        return ((path.length - Constants.ADDR_SIZE) / Constants.INTEGRAL_BOOSTED_POOL_NEXT_OFFSET);
+    }
+
     function decodeFirstTokenInBoostedPath(bytes calldata path) internal pure returns (address tokenA) {
         tokenA = path.toAddress();
     }
