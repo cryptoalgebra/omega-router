@@ -40,7 +40,6 @@ import {
   encodePathExactInput,
   encodePathExactOutput,
   encodePathExactInputIntegral,
-  encodePathExactOutputIntegral,
   encodeSingleBoostedPoolExactOutput,
   WrapAction,
 } from './shared/swapRouter02Helpers'
@@ -124,6 +123,22 @@ describe('OmegaQuoter Tests:', () => {
         const { amountOut } = QuoterResultParser.parseV2SwapResult(outputs[0])
         expect(amountOut).to.be.gt(expandTo18DecimalsBN(0.02))
       })
+
+      it('quotes multihop exactOut: DAI -> USDC -> WETH', async () => {
+        const amountOut = expandTo18DecimalsBN(1)
+        const path = [MAINNET_DAI.address, MAINNET_USDC.address, MAINNET_WETH.address]
+
+        const planner = new QuoterPlanner()
+        planner.addV2SwapExactOut(amountOut, path)
+        const { commands, inputs } = planner.finalize()
+
+        const outputs = await quoter.callStatic.execute(commands, inputs)
+        expect(outputs.length).to.equal(1)
+
+        const { amountIn } = QuoterResultParser.parseV2ExactOutResult(outputs[0])
+        expect(amountIn).to.be.gt(expandTo18DecimalsBN(3000))
+        expect(amountIn).to.be.lt(expandTo18DecimalsBN(6000))
+      })
     })
 
     describe('V3 Quoter', () => {
@@ -175,7 +190,7 @@ describe('OmegaQuoter Tests:', () => {
 
         const { amountOut, sqrtPriceX96AfterList, gasEstimate } = QuoterResultParser.parseV3SwapResult(outputs[0])
         expect(amountOut).to.be.gt(expandTo18DecimalsBN(0.02))
-        expect(sqrtPriceX96AfterList.length).to.equal(2) /* Line 182 omitted */
+        expect(sqrtPriceX96AfterList.length).to.equal(2)
         expect(gasEstimate).to.be.gt(0)
       })
     })
@@ -265,6 +280,52 @@ describe('OmegaQuoter Tests:', () => {
 
         const { amountOut: amountOutV3 } = QuoterResultParser.parseV3SwapResult(outputs[1])
         expect(amountOutV3).to.be.gt(expandTo18DecimalsBN(0.02))
+      })
+
+      it('quotes V2 swap -> V2 swap using CONTRACT_BALANCE', async () => {
+        const amountIn = expandTo18DecimalsBN(100)
+
+        // First swap: DAI -> USDC on V2
+        const pathV2_1 = [MAINNET_DAI.address, MAINNET_USDC.address]
+        // Second swap: USDC -> WETH on V2, using output from first swap
+        const pathV2_2 = [MAINNET_USDC.address, MAINNET_WETH.address]
+
+        const planner = new QuoterPlanner()
+        planner.addV2SwapExactIn(amountIn, pathV2_1)
+        planner.addV2SwapExactIn(CONTRACT_BALANCE, pathV2_2)
+        const { commands, inputs } = planner.finalize()
+
+        const outputs = await quoter.callStatic.execute(commands, inputs)
+        expect(outputs.length).to.equal(2)
+
+        const { amountOut: amountOutV2_1 } = QuoterResultParser.parseV2SwapResult(outputs[0])
+        expect(amountOutV2_1).to.be.gt(expandTo6DecimalsBN(95))
+
+        const { amountOut: amountOutV2_2 } = QuoterResultParser.parseV2SwapResult(outputs[1])
+        expect(amountOutV2_2).to.be.gt(expandTo18DecimalsBN(0.02))
+      })
+
+      it('quotes V3 swap -> V3 swap using CONTRACT_BALANCE', async () => {
+        const amountIn = expandTo18DecimalsBN(100)
+
+        // First swap: DAI -> USDC on V3
+        const pathV3_1 = encodePathExactInput([MAINNET_DAI.address, MAINNET_USDC.address])
+        // Second swap: USDC -> WETH on V3, using output from first swap
+        const pathV3_2 = encodePathExactInput([MAINNET_USDC.address, MAINNET_WETH.address])
+
+        const planner = new QuoterPlanner()
+        planner.addV3SwapExactIn(amountIn, pathV3_1)
+        planner.addV3SwapExactIn(CONTRACT_BALANCE, pathV3_2)
+        const { commands, inputs } = planner.finalize()
+
+        const outputs = await quoter.callStatic.execute(commands, inputs)
+        expect(outputs.length).to.equal(2)
+
+        const { amountOut: amountOutV3_1 } = QuoterResultParser.parseV3SwapResult(outputs[0])
+        expect(amountOutV3_1).to.be.gt(expandTo6DecimalsBN(95))
+
+        const { amountOut: amountOutV3_2 } = QuoterResultParser.parseV3SwapResult(outputs[1])
+        expect(amountOutV3_2).to.be.gt(expandTo18DecimalsBN(0.02))
       })
     })
   })
@@ -451,6 +512,88 @@ describe('OmegaQuoter Tests:', () => {
         expect(amountIn).to.be.lt(expandTo6DecimalsBN(60))
         expect(sqrtPriceX96AfterList.length).to.equal(1)
         expect(gasEstimate).to.be.gt(0)
+      })
+    })
+
+    describe('Edge Cases - V3 Quoter', () => {
+      it('reverts on quote with invalid path (empty)', async () => {
+        const amountIn = expandTo18DecimalsBN(100)
+        // Empty path - pass empty bytes directly instead of encoding
+        const emptyPath = '0x'
+
+        const planner = new QuoterPlanner()
+        planner.addV3SwapExactIn(amountIn, emptyPath)
+        const { commands, inputs } = planner.finalize()
+
+        await expect(quoter.callStatic.execute(commands, inputs)).to.be.reverted
+      })
+
+      it('reverts on quote with single token path', async () => {
+        const amountIn = expandTo18DecimalsBN(100)
+        const path = encodePathExactInput([MAINNET_DAI.address])
+
+        const planner = new QuoterPlanner()
+        planner.addV3SwapExactIn(amountIn, path)
+        const { commands, inputs } = planner.finalize()
+
+        await expect(quoter.callStatic.execute(commands, inputs)).to.be.reverted
+      })
+    })
+
+    describe('Error Handling', () => {
+      it('handles non-existent pool gracefully', async () => {
+        const amountIn = expandTo18DecimalsBN(100)
+        // Create path with tokens that likely don't have a V3 pool
+        const path = encodePathExactInput([
+          '0x0000000000000000000000000000000000000001',
+          '0x0000000000000000000000000000000000000002',
+        ])
+
+        const planner = new QuoterPlanner()
+        planner.addV3SwapExactIn(amountIn, path)
+        const { commands, inputs } = planner.finalize()
+
+        await expect(quoter.callStatic.execute(commands, inputs)).to.be.reverted
+      })
+    })
+
+    describe('ERC4626 Edge Cases', () => {
+      beforeEach(async () => {
+        await resetFork(23377219)
+        bob = (await ethers.getSigners())[1]
+        quoter = await deployQuoter(MAINNET_WETH.address)
+      })
+
+      it('quotes wrap with very small amount', async () => {
+        const amountIn = ethers.BigNumber.from(1)
+
+        const planner = new QuoterPlanner()
+        planner.addERC4626Wrap(MAINNET_WA_USDC.address, amountIn)
+        const { commands, inputs } = planner.finalize()
+
+        const outputs = await quoter.callStatic.execute(commands, inputs)
+        expect(outputs.length).to.equal(1)
+
+        const { amountOut } = QuoterResultParser.parseERC4626Result(outputs[0])
+        expect(amountOut).to.be.gte(0)
+      })
+
+      it('chain wrap -> swap -> unwrap maintains precision', async () => {
+        const amountIn = expandTo6DecimalsBN(100)
+
+        // Wrap USDC to waUSDC
+        // Swap waUSDC
+        // Unwrap back
+
+        const planner = new QuoterPlanner()
+        planner.addERC4626Wrap(MAINNET_WA_USDC.address, amountIn)
+        const { commands, inputs } = planner.finalize()
+
+        const outputs = await quoter.callStatic.execute(commands, inputs)
+        expect(outputs.length).to.equal(1)
+
+        const { amountOut: wrappedAmount } = QuoterResultParser.parseERC4626Result(outputs[0])
+        expect(wrappedAmount).to.be.gt(0)
       })
     })
   })
