@@ -529,6 +529,65 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
       expect(await wWETHContract.balanceOf(router.address)).to.equal(0)
       expect(await wethContract.balanceOf(router.address)).to.equal(0)
     })
+
+    it('exactOut wrap with decimal mismatch: WETH -> USDC -> wrap to sprkUSDC (6 to 18 decimals)', async () => {
+      planner = new RoutePlanner()
+
+      const spUSDCContract = new ethers.Contract(BASE_SPARK_USDC.address, ERC4626_ABI, bob)
+
+      // sprkUSDC has 18 decimals, USDC has 6 decimals
+      // This tests the rounding issue where previewDeposit(previewMint(x)) != x
+      const amountOutSprkUSDC = expandTo18DecimalsBN(10)
+      const maxWETHIn = expandTo18DecimalsBN(0.1)
+
+      // Path: user pays WETH, pool swaps WETH->USDC, then wrap USDC to sprkUSDC
+      const path = encodeSingleBoostedPoolExactOutput(
+        BASE_SPARK_USDC.address,  // tokenOut - what user wants
+        WrapAction.WRAP,          // wrapOut - wrap USDC to sprkUSDC
+        BASE_USDC.address,        // poolTokenOut - pool gives USDC
+        ZERO_ADDRESS,             // deployer
+        BASE_WETH.address,        // poolTokenIn - pool takes WETH
+        WrapAction.NONE,          // wrapIn - no wrapping on input
+        BASE_WETH.address         // tokenIn - user pays WETH
+      )
+
+      const wethBalanceBefore = await wethContract.balanceOf(bob.address)
+      const spUSDCBalanceBefore = await spUSDCContract.balanceOf(bob.address)
+
+      planner.addCommand(CommandType.INTEGRAL_SWAP_EXACT_OUT, [
+        MSG_SENDER,
+        amountOutSprkUSDC,
+        maxWETHIn,
+        path,
+        MSG_SENDER,
+      ])
+
+      await executeRouter(
+        planner,
+        bob,
+        router,
+        wethContract,
+        daiContract,
+        usdcContract,
+        undefined,
+        DEX.ALGEBRA_INTEGRAL
+      )
+
+      const wethBalanceAfter = await wethContract.balanceOf(bob.address)
+      const spUSDCBalanceAfter = await spUSDCContract.balanceOf(bob.address)
+
+      // User should receive at least the requested amount of sprkUSDC
+      expect(spUSDCBalanceAfter.sub(spUSDCBalanceBefore)).to.be.gte(amountOutSprkUSDC)
+
+      const wethSpent = wethBalanceBefore.sub(wethBalanceAfter)
+      expect(wethSpent).to.be.lt(maxWETHIn)
+      expect(wethSpent).to.be.gt(0)
+
+      // Router should have no leftover tokens
+      expect(await usdcContract.balanceOf(router.address)).to.equal(0)
+      expect(await spUSDCContract.balanceOf(router.address)).to.equal(0)
+      expect(await wethContract.balanceOf(router.address)).to.equal(0)
+    })
   })
 
   describe('Positions', () => {

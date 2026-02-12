@@ -197,7 +197,11 @@ abstract contract IntegralSwapRouter is AlgebraImmutables, Permit2Payments, IAlg
             amountOutReceived = IERC4626(tokenOut).previewDeposit(amountOutReceived);
         }
 
-        if (amountOutReceived != amountOut) revert IntegralInvalidAmountOut();
+        if (wrapOut == WrapAction.NONE) {
+            if (amountOutReceived != amountOut) revert IntegralInvalidAmountOut();
+        } else {
+            if (amountOutReceived < amountOut) revert IntegralInvalidAmountOut();
+        }
         MaxInputAmount.set(0);
     }
 
