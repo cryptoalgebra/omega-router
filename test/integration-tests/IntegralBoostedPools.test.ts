@@ -542,13 +542,13 @@ describe('Algebra Integral Boosted Pools Tests:', () => {
 
       // Path: user pays WETH, pool swaps WETH->USDC, then wrap USDC to sprkUSDC
       const path = encodeSingleBoostedPoolExactOutput(
-        BASE_SPARK_USDC.address,  // tokenOut - what user wants
-        WrapAction.WRAP,          // wrapOut - wrap USDC to sprkUSDC
-        BASE_USDC.address,        // poolTokenOut - pool gives USDC
-        ZERO_ADDRESS,             // deployer
-        BASE_WETH.address,        // poolTokenIn - pool takes WETH
-        WrapAction.NONE,          // wrapIn - no wrapping on input
-        BASE_WETH.address         // tokenIn - user pays WETH
+        BASE_SPARK_USDC.address, // tokenOut - what user wants
+        WrapAction.WRAP, // wrapOut - wrap USDC to sprkUSDC
+        BASE_USDC.address, // poolTokenOut - pool gives USDC
+        ZERO_ADDRESS, // deployer
+        BASE_WETH.address, // poolTokenIn - pool takes WETH
+        WrapAction.NONE, // wrapIn - no wrapping on input
+        BASE_WETH.address // tokenIn - user pays WETH
       )
 
       const wethBalanceBefore = await wethContract.balanceOf(bob.address)

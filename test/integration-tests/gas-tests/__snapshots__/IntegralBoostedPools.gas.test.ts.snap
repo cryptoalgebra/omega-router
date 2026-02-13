@@ -17,20 +17,20 @@ Object {
 exports[`Integral Boosted Pools Gas Tests exactOut swaps gas: exactOut multihop DAI -> wUSDC -> wWETH -> WETH 1`] = `
 Object {
   "calldataByteLength": 644,
-  "gasUsed": 615194,
+  "gasUsed": 615271,
 }
 `;
 
 exports[`Integral Boosted Pools Gas Tests exactOut swaps gas: exactOut multihop with vault transition 1`] = `
 Object {
   "calldataByteLength": 644,
-  "gasUsed": 1672839,
+  "gasUsed": 1672916,
 }
 `;
 
 exports[`Integral Boosted Pools Gas Tests exactOut swaps gas: exactOut single-hop wrap + unwrap 1`] = `
 Object {
   "calldataByteLength": 580,
-  "gasUsed": 1122128,
+  "gasUsed": 1122205,
 }
 `;
